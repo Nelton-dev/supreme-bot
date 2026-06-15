@@ -1,0 +1,9 @@
+node_modules/
+auth/
+.env
+data/users.json
+data/limiter.json
+data/social.json
+data/config.json
+logs/
+*.log

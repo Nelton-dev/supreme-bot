@@ -1,0 +1,20 @@
+{
+  "name": "bot-supreme",
+  "version": "1.0.0",
+  "main": "start.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "6.7.0",
+    "axios": "^1.18.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "form-data": "^4.0.6",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "socket.io": "^4.8.3"
+  }
+}
