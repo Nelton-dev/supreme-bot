@@ -53,22 +53,25 @@ async function verificarAdmin(sock, jid, msg) {
 async function boasVindasAuto(sock, jid, participantes, tipo) {
   const config = carregarConfig()
 
+  // Aguarda 3 segundos para sessão estabilizar
+  await new Promise(r => setTimeout(r, 3000))
+
   for (const p of participantes) {
     const nome = p.split('@')[0]
-
-    if (tipo === 'add' && config.boasVindas) {
-      const msg = config.bemVindoMsg.replace('{nome}', nome)
-      await sock.sendMessage(jid, { text: msg })
-
-      // Perfil inicial
-      const { user } = getUser(nome)
-      user.xp = 0; user.nivel = 1; user.pontos = 0
-      saveUser(nome, user)
-    }
-
-    if (tipo === 'remove' && config.despedida) {
-      const msg = config.despedidaMsg.replace('{nome}', nome)
-      await sock.sendMessage(jid, { text: msg })
+    try {
+      if (tipo === 'add' && config.boasVindas) {
+        const msg = config.bemVindoMsg.replace('{nome}', nome)
+        await sock.sendMessage(jid, { text: msg })
+        const { user } = getUser(nome)
+        user.xp = 0; user.nivel = 1; user.pontos = 0
+        saveUser(nome, user)
+      }
+      if (tipo === 'remove' && config.despedida) {
+        const msg = config.despedidaMsg.replace('{nome}', nome)
+        await sock.sendMessage(jid, { text: msg })
+      }
+    } catch (err) {
+      console.log(`⚠️ Boas-vindas falhou para ${nome}:`, err.message)
     }
   }
 }

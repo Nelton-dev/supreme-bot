@@ -34,7 +34,7 @@ async function chamarGroq(mensagens, json = false, maxTokens = 500) {
   try {
     const res = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
-      { model: 'llama3-8b-8192', max_tokens: maxTokens, temperature: 0.85, messages: mensagens },
+      { model: 'llama-3.1-8b-instant', max_tokens: maxTokens, temperature: 0.85, messages: mensagens },
       { headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
     )
     marcarSucesso('groq')
