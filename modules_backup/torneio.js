@@ -67,7 +67,7 @@ async function apostar(sock, jid, apostador, alvo, quantia) {
     return
   }
 
-  const user = getUser(apostador)
+  const { user } = getUser(apostador)
   if (user.pontos < pts) {
     await sock.sendMessage(jid, { text: `❌ Pontos insuficientes! Tens ${user.pontos} pts.` })
     return
@@ -88,7 +88,7 @@ async function devolverApostas(sock, jid) {
   if (!torneioAtivo?.apostas) return
   for (const [, lista] of Object.entries(torneioAtivo.apostas)) {
     for (const { apostador, quantia } of lista) {
-      const user = getUser(apostador)
+      const { user } = getUser(apostador)
       user.pontos += quantia
       saveUser(apostador, user)
     }
@@ -99,7 +99,7 @@ async function pagarApostas(sock, jid, vencedor) {
   if (!torneioAtivo?.apostas?.[vencedor]) return
   const ganhadores = []
   for (const { apostador, quantia } of torneioAtivo.apostas[vencedor]) {
-    const user = getUser(apostador)
+    const { user } = getUser(apostador)
     user.pontos += quantia * 2
     saveUser(apostador, user)
     ganhadores.push(`${apostador} (+${quantia * 2} pts)`)
@@ -115,8 +115,9 @@ async function pagarApostas(sock, jid, vencedor) {
 //  SIMULAR BATALHA COM HABILIDADES
 // ════════════════════════════════════════
 function simularBatalhaCompleta(j1, j2) {
-const u1 = getUser(j1)
-const u2 = getUser(j2)
+  const { user: u1 } = getUser(j1)
+  const { user: u2 } = getUser(j2)
+
   let vida1 = u1.vida || 100
   let vida2 = u2.vida || 100
   const atk1 = u1.ataque || 10
@@ -214,7 +215,7 @@ async function correrTorneio(sock, jid) {
   }
 
   const campeao = participantes[0]
-  const user = getUser(campeao)
+  const { user } = getUser(campeao)
   user.xp += 150
   user.pontos += 120
   user.vitorias = (user.vitorias || 0) + 1
@@ -282,7 +283,7 @@ async function torneioClans(sock, jid) {
 
   // Recompensa membros do clã vencedor
   for (const membro of clanVencedor.membros) {
-    const user = getUser(membro)
+    const { user } = getUser(membro)
     user.xp += 80; user.pontos += 60
     saveUser(membro, user)
   }

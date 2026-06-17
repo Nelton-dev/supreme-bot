@@ -287,7 +287,7 @@ Usa emojis, máx 8 linhas.`
   const mvp = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]
 
   if (mvp) {
-    const user = getUser(mvp[0])
+    const { user } = getUser(mvp[0])
     user.xp += 25; user.pontos += 20
     saveUser(mvp[0], user)
   }

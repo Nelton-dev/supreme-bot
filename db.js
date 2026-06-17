@@ -1,36 +1,66 @@
 const fs = require('fs')
+
 const PATH = './data/users.json'
 
-function carregar() {
-  if (!fs.existsSync(PATH)) fs.writeFileSync(PATH, '{}')
-  return JSON.parse(fs.readFileSync(PATH))
+if (!fs.existsSync(PATH)) {
+  fs.writeFileSync(PATH, '{}')
 }
 
-function salvar(db) {
-  fs.writeFileSync(PATH, JSON.stringify(db, null, 2))
+let cache = JSON.parse(fs.readFileSync(PATH, 'utf8'))
+let dirty = false
+
+function salvar() {
+  fs.writeFileSync(PATH, JSON.stringify(cache, null, 2))
+  dirty = false
 }
 
 function getUser(nome) {
-  const db = carregar()
-  if (!db[nome]) {
-    db[nome] = {
-      xp: 0, nivel: 1, pontos: 0,
-      titulo: 'Novato', vida: 100, ataque: 10,
-      inventario: [], ultimoDiario: null, vitorias: 0
+  if (!cache[nome]) {
+    cache[nome] = {
+      xp: 0,
+      nivel: 1,
+      pontos: 0,
+      titulo: 'Novato',
+      vida: 100,
+      ataque: 10,
+      inventario: [],
+      ultimoDiario: null,
+      vitorias: 0
     }
-    salvar(db)
+
+    dirty = true
   }
-  return { db, user: db[nome] }
+
+  return cache[nome]
 }
 
 function saveUser(nome, user) {
-  const db = carregar()
-  db[nome] = user
-  salvar(db)
+  cache[nome] = user
+  dirty = true
 }
 
 function todosUsuarios() {
-  return carregar()
+  return cache
 }
 
-module.exports = { getUser, saveUser, todosUsuarios }
+// Salva a cada 30 segundos se houver mudanças
+setInterval(() => {
+  if (dirty) salvar()
+}, 30000)
+
+// Salva ao encerrar
+process.on('SIGINT', () => {
+  salvar()
+  process.exit()
+})
+
+process.on('SIGTERM', () => {
+  salvar()
+  process.exit()
+})
+
+module.exports = {
+  getUser,
+  saveUser,
+  todosUsuarios
+}

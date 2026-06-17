@@ -123,7 +123,7 @@ async function verificarResposta(sock, jid, texto, nome) {
   if (!ativo || ativo.jid !== jid) return false
   if (texto !== ativo.r) return false
   clearTimeout(timeout)
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   const xpGanho = 20, ptosGanho = 15
   user.xp += xpGanho
   user.pontos += ptosGanho
@@ -143,7 +143,7 @@ async function verificarResposta(sock, jid, texto, nome) {
 }
 
 async function verPerfil(sock, jid, nome) {
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   const barra = '█'.repeat(Math.min(user.nivel, 10)) + '░'.repeat(10 - Math.min(user.nivel, 10))
   await sock.sendMessage(jid, {
     text: `👤 *Perfil de ${nome}*\n\n🏅 Título: ${user.titulo}\n⭐ Nível: ${user.nivel}\n✨ XP: ${user.xp}\n💰 Pontos: ${user.pontos}\n⚔️ Ataque: ${user.ataque}\n❤️ Vida: ${user.vida}\n🏆 Vitórias: ${user.vitorias}\n🎒 Itens: ${user.inventario.length > 0 ? user.inventario.join(', ') : 'Nenhum'}\n\nNível: [${barra}]`

@@ -144,7 +144,7 @@ async function completarDesafio(sock, jid, nome) {
     return
   }
   desafioHoje.responderam.push(nome)
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   user.xp += 30
   user.pontos += 25
   saveUser(nome, user)
@@ -180,7 +180,7 @@ async function comprar(sock, jid, nome, itemId) {
     await sock.sendMessage(jid, { text: `❌ Item *${itemId}* não encontrado. Usa *!loja* para ver os itens.` })
     return
   }
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   if (user.pontos < item.preco) {
     await sock.sendMessage(jid, { text: `❌ Pontos insuficientes!\nTens *${user.pontos}* pontos, precisas de *${item.preco}*.` })
     return

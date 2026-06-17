@@ -6,4 +6,6 @@ data/limiter.json
 data/social.json
 data/config.json
 logs/
+session/
+.baileys/
 *.log

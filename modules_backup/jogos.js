@@ -84,7 +84,7 @@ async function tentarLetra(sock, jid, letra, nome) {
 
     if (ganhou) {
       clearTimeout(forcaTimeout)
-      const user = getUser(nome)
+      const { user } = getUser(nome)
       user.xp += 40; user.pontos += 30
       saveUser(nome, user)
       await sock.sendMessage(jid, { text: `✅ *${nome}* descobriu a letra *${letra.toUpperCase()}*!\n\n🎉 *GANHOU!* A palavra era *${forcaAtiva.palavra.toUpperCase()}*!\n+40 XP | +30 pontos` })
@@ -111,7 +111,7 @@ async function tentarPalavra(sock, jid, tentativa, nome) {
   if (!forcaAtiva || forcaAtiva.jid !== jid) return
   if (tentativa.toLowerCase() === forcaAtiva.palavra) {
     clearTimeout(forcaTimeout)
-    const user = getUser(nome)
+    const { user } = getUser(nome)
     user.xp += 50; user.pontos += 40
     saveUser(nome, user)
     await sock.sendMessage(jid, { text: `🎉 *${nome}* adivinhou a palavra *${forcaAtiva.palavra.toUpperCase()}*!\n+50 XP | +40 pontos 🏅` })
@@ -216,7 +216,7 @@ async function tentarPar(sock, jid, l1, l2, nome) {
     memoriaAtiva.reveladas.push(idx1, idx2)
 
     if (memoriaAtiva.acertos === 2) {
-      const user = getUser(nome)
+      const { user } = getUser(nome)
       user.xp += 35; user.pontos += 25
       saveUser(nome, user)
       await sock.sendMessage(jid, { text: `✅ Par correto: *${c1}* & *${c2}*!\n\n🎉 *${nome}* completou o jogo!\n+35 XP | +25 pontos` })
@@ -337,7 +337,7 @@ async function verificarFrase(sock, jid, texto, nome) {
   if (texto !== fraseAtiva.resposta) return false
 
   clearTimeout(fraseTimeout)
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   user.xp += 15; user.pontos += 10
   saveUser(nome, user)
   await sock.sendMessage(jid, { text: `✅ *${nome}* completou a frase!\n+15 XP | +10 pontos 🎉` })

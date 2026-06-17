@@ -20,7 +20,7 @@ const EMBLEMAS = ['🔥','⚡','🌊','🌪️','❄️','🌸','💀','👁️'
 
 async function criarCla(sock, jid, nome, nomeCla) {
   const social = carregarSocial()
-  const user = getUser(nome)
+  const { user } = getUser(nome)
 
   // Verifica se já está em clã
   const claAtual = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
@@ -188,8 +188,8 @@ async function aceitarCasamento(sock, jid, nome) {
   salvarSocial(social)
 
   // Bónus de XP para os dois
- const u1 = getUser(nome)
-const u2 = getUser(nomeProp)
+  const { user: u1 } = getUser(nome)
+  const { user: u2 } = getUser(nomeProp)
   u1.xp += 30; u2.xp += 30
   saveUser(nome, u1); saveUser(nomeProp, u2)
 
@@ -288,7 +288,7 @@ function atualizarMissao(nome, tipo) {
     if (prog.progresso >= m.meta) {
       prog.completa = true
       // Dar recompensa
-      const user = getUser(nome)
+      const { user } = getUser(nome)
       user.xp += m.xp
       user.pontos += m.pontos
       saveUser(nome, user)

@@ -1,4 +1,14 @@
-const { todosUsuarios } = require('./db')
+const { getUser, saveUser, todosUsuarios } = require('./db')
+const UI = require('./modules/ui')
+const {
+  enviarCardPerfil,
+  enviarRankingComImagem,
+  enviarBoasVindasComImagem,
+  enviarWaifuComImagem,
+  enviarVitoriaTorneio,
+  enviarLevelUp,
+  enviarVitoriaBatalha,
+} = require('./modules/imagens')
 const { enviarHumano, digitando, delay } = require('./modules/humano')
 const { ajuda } = require('./modules/ajuda')
 const { verificarLimite, verUso, resetUso } = require('./modules/limiter')
@@ -8,9 +18,9 @@ const { desafiar, aceitar, recusar, atacar } = require('./modules/rpg')
 const {
   iniciarAdivinhar, verificarAdivinhar,
   waifuDoDia, desafioDiario, completarDesafio,
-  verLoja, comprar
 } = require('./modules/adivinhar')
-const { iniciarTorneio, inscrever } = require('./modules/torneio')
+const { iniciarTorneio, inscrever, apostar, torneioClans, agendarTorneioSemanal } = require('./modules/torneio')
+const { verLoja, verLojaTudo, comprar, equiparHabilidade, equiparPet, usarPocao } = require('./modules/loja')
 const { agendarNotificacoes } = require('./modules/agendador')
 const { responderIA, limparHistorico } = require('./modules/ia')
 const { comandoImagem } = require('./modules/imagem')
@@ -86,6 +96,7 @@ module.exports = function iniciarHandler(sock) {
     if (!JID_GRUPO && jid.endsWith('@g.us')) {
       JID_GRUPO = jid
       agendarNotificacoes(sock, JID_GRUPO)
+      agendarTorneioSemanal(sock, JID_GRUPO)
       console.log(`📌 Grupo detectado: ${JID_GRUPO}`)
     }
 
@@ -121,7 +132,8 @@ module.exports = function iniciarHandler(sock) {
     if (texto === '!inscrever') return inscrever(sock, jid, nome)
 
     // ─── WAIFU / DIÁRIO ──────────────────────────────────────
-    if (texto === '!waifu') return waifuDoDia(sock, jid)
+if (texto === '!waifu')
+  return waifuDoDia(sock, jid)
     if (texto === '!diario') return desafioDiario(sock, jid, nome)
     if (texto === '!completar') return completarDesafio(sock, jid, nome)
 
@@ -130,20 +142,25 @@ module.exports = function iniciarHandler(sock) {
     if (texto.startsWith('!comprar ')) return comprar(sock, jid, nome, texto.split(' ')[1])
 
     // ─── PERFIL / RANKING ────────────────────────────────────
-    if (texto === '!perfil') return verPerfil(sock, jid, nome)
-    if (texto === '!ranking') {
-      const db = todosUsuarios()
-      const sorted = Object.entries(db).sort((a, b) => b[1].xp - a[1].xp).slice(0, 10)
-      if (!sorted.length) { await sock.sendMessage(jid, { text: '📊 Nenhum dado ainda!' }); return }
-      const medals = ['🥇','🥈','🥉']
-      let txt = '🏆 *RANKING GERAL* 🏆\n\n'
-      sorted.forEach(([n, u], i) => {
-        txt += `${medals[i] || `${i+1}.`} *${n}*\n   Nível ${u.nivel} | ${u.xp} XP | ${u.pontos} pts\n\n`
-      })
-      await sock.sendMessage(jid, { text: txt })
-      return
-    }
 
+if (texto === '!perfil')
+  return UI.mostrarPerfil(sock, jid, nome)
+
+   if (texto === '!ranking') {
+  const db = todosUsuarios()
+
+  const sorted = Object.entries(db)
+    .sort((a, b) => b[1].xp - a[1].xp)
+    .slice(0, 10)
+
+  if (!sorted.length) {
+    return sock.sendMessage(jid, { text: '📊 Nenhum dado ainda!' })
+  }
+
+  const top3 = sorted.slice(0, 3)
+
+  return enviarRankingComImagem(sock, jid, sorted, top3)
+}
     // ─── MENÇÃO INTELIGENTE ──────────────────────────────────
     // Responde quando mencionam "animebot", "bot" ou "@bot" no início
     const mencoes = ['animebot', '@animebot', 'bot,', 'bot ']

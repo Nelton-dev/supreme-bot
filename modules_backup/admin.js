@@ -62,7 +62,7 @@ async function boasVindasAuto(sock, jid, participantes, tipo) {
       if (tipo === 'add' && config.boasVindas) {
         const msg = config.bemVindoMsg.replace('{nome}', nome)
         await sock.sendMessage(jid, { text: msg })
-        const user = getUser(nome)
+        const { user } = getUser(nome)
         user.xp = 0; user.nivel = 1; user.pontos = 0
         saveUser(nome, user)
       }

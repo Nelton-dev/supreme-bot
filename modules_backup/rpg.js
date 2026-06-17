@@ -67,7 +67,7 @@ async function atacar(sock, jid, nome) {
 
   if (oponente.vida <= 0) {
     // Fim da batalha
-    const vencedorUser = getUser(nome)
+    const { db, user: vencedorUser } = getUser(nome)
     vencedorUser.vitorias = (vencedorUser.vitorias || 0) + 1
     vencedorUser.xp += 50
     vencedorUser.pontos += 30

@@ -84,7 +84,7 @@ async function verificarQuizIA(sock, jid, texto, nome) {
   const xp = dif === 'facil' ? 15 : dif === 'medio' ? 25 : 40
   const pts = dif === 'facil' ? 10 : dif === 'medio' ? 20 : 35
 
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   user.xp += xp; user.pontos += pts
   saveUser(nome, user)
 
@@ -158,7 +158,7 @@ async function letraForcaIA(sock, jid, letra, nome) {
     const d = getDisplay()
     if (!d.includes('_')) {
       clearTimeout(forcaIATimeout)
-      const user = getUser(nome)
+      const { user } = getUser(nome)
       user.xp += 45; user.pontos += 35
       saveUser(nome, user)
       await sock.sendMessage(jid, { text: `🎉 *${nome}* completou a forca!\nPalavra: *${forcaIAAtiva.palavra.toUpperCase()}*\n+45 XP | +35 pontos` })
@@ -241,7 +241,7 @@ async function verificarSinopse(sock, jid, texto, nome) {
   if (!correto?.correto) return false
 
   clearTimeout(sinopseTimeout)
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   user.xp += 35; user.pontos += 30
   saveUser(nome, user)
 
@@ -296,7 +296,7 @@ async function continuarHistoria(sock, jid, contribuicao, nome) {
   historiaAtiva.historia += '\n' + continuacao
   historiaAtiva.contribuicoes++
 
-  const user = getUser(nome)
+  const { user } = getUser(nome)
   user.xp += 10; user.pontos += 8
   saveUser(nome, user)
 
