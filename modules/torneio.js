@@ -1,54 +1,77 @@
-const { getUser, saveUser, todosUsuarios } = require('../db')
+const { getUser, saveUser } = require('../db')
 const { ITENS } = require('./loja')
-
-let torneioAtivo = null
+const { enviarVitoriaTorneio, enviarBannerTorneio } = require('./imagens')
+const fs = require('fs')
 
 // ════════════════════════════════════════
-//  INICIAR TORNEIO
+//  ESTADO (objeto partilhado com o handler)
 // ════════════════════════════════════════
-async function iniciarTorneio(sock, jid, tipo = 'individual') {
-  if (torneioAtivo) {
+const state = {
+  torneio: null
+}
+
+// ════════════════════════════════════════
+//  INICIAR TORNEIO (interativo por turnos)
+// ════════════════════════════════════════
+async function iniciarTorneio(sock, jid) {
+  if (state.torneio) {
     await sock.sendMessage(jid, { text: '🏆 Já há um torneio em curso!' })
     return
   }
 
-  torneioAtivo = {
-    jid, tipo, inscritos: [], apostas: {},
-    fase: 'inscricao', inicio: Date.now()
-  }
+  state.torneio = { jid, inscritos: [], apostas: {}, fase: 'inscricao', batalhaAtual: null, modo: 'normal' }
 
-  await sock.sendMessage(jid, {
-    text: `🏆 *TORNEIO ${tipo.toUpperCase()} INICIADO!*\n\n⚔️ Inscreve-te com *!inscrever*\n💰 Aposta pontos com *!apostar <nome> <pontos>*\n⏱️ Inscrições encerram em 60 segundos!\n\nMínimo 2 participantes para começar.`
-  })
+  // 🖼️ Banner 1 - INÍCIO
+  await enviarBannerTorneio(sock, jid, { inscritos: 0, tempo: 90, titulo: 'INSCRIÇÕES ABERTAS' })
 
+  // 🖼️ Banner 2 - MEIO (45s)
   setTimeout(async () => {
-    if (!torneioAtivo) return
-    if (torneioAtivo.inscritos.length < 2) {
+    if (!state.torneio || state.torneio.fase !== 'inscricao') return
+    await enviarBannerTorneio(sock, jid, {
+      inscritos: state.torneio.inscritos.length,
+      tempo: 45,
+      titulo: 'ÚLTIMA CHANCE!'
+    })
+  }, 45000)
+
+  // 🖼️ Banner 3 - FIM (90s) + início do torneio
+  setTimeout(async () => {
+    if (!state.torneio) return
+    await enviarBannerTorneio(sock, jid, {
+      inscritos: state.torneio.inscritos.length,
+      tempo: 0,
+      titulo: 'INSCRIÇÕES ENCERRADAS'
+    })
+
+    if (state.torneio.inscritos.length < 2) {
       await sock.sendMessage(jid, { text: '❌ Torneio cancelado — participantes insuficientes.' })
-      // Devolve apostas
       await devolverApostas(sock, jid)
-      torneioAtivo = null
+      state.torneio = null
       return
     }
-    await correrTorneio(sock, jid)
-  }, 60000)
+    await iniciarFase(sock, jid)
+  }, 90000)
 }
 
 // ════════════════════════════════════════
 //  INSCRIÇÃO
 // ════════════════════════════════════════
 async function inscrever(sock, jid, nome) {
-  if (!torneioAtivo || torneioAtivo.fase !== 'inscricao') {
-    await sock.sendMessage(jid, { text: '⚠️ Nenhum torneio aberto! Aguarda *!torneio*' })
+  if (!state.torneio || state.torneio.fase !== 'inscricao') {
+    await sock.sendMessage(jid, { text: '⚠️ Nenhum torneio aberto! Aguarda !torneio' })
     return
   }
-  if (torneioAtivo.inscritos.includes(nome)) {
+  if (state.torneio.modo === 'clans') {
+    await sock.sendMessage(jid, { text: '⚠️ Este é um torneio de clãs com representantes já definidos!' })
+    return
+  }
+  if (state.torneio.inscritos.includes(nome)) {
     await sock.sendMessage(jid, { text: `✅ *${nome}*, já estás inscrito!` })
     return
   }
-  torneioAtivo.inscritos.push(nome)
+  state.torneio.inscritos.push(nome)
   await sock.sendMessage(jid, {
-    text: `✅ *${nome}* inscrito!\n👥 Inscritos (${torneioAtivo.inscritos.length}): ${torneioAtivo.inscritos.join(', ')}`
+    text: `✅ *${nome}* inscrito no torneio!\n👥 Inscritos (${state.torneio.inscritos.length}): ${state.torneio.inscritos.join(', ')}`
   })
 }
 
@@ -56,14 +79,14 @@ async function inscrever(sock, jid, nome) {
 //  APOSTAS
 // ════════════════════════════════════════
 async function apostar(sock, jid, apostador, alvo, quantia) {
-  if (!torneioAtivo || torneioAtivo.fase !== 'inscricao') {
+  if (!state.torneio || state.torneio.fase !== 'inscricao') {
     await sock.sendMessage(jid, { text: '⚠️ Só podes apostar durante as inscrições!' })
     return
   }
 
   const pts = parseInt(quantia)
   if (isNaN(pts) || pts < 10) {
-    await sock.sendMessage(jid, { text: '❌ Aposta mínima: 10 pontos!\nEx: *!apostar Naruto 50*' })
+    await sock.sendMessage(jid, { text: '❌ Aposta mínima: 10 pontos!\nEx: !apostar Naruto 50' })
     return
   }
 
@@ -76,17 +99,341 @@ async function apostar(sock, jid, apostador, alvo, quantia) {
   user.pontos -= pts
   saveUser(apostador, user)
 
-  if (!torneioAtivo.apostas[alvo]) torneioAtivo.apostas[alvo] = []
-  torneioAtivo.apostas[alvo].push({ apostador, quantia: pts })
+  if (!state.torneio.apostas[alvo]) state.torneio.apostas[alvo] = []
+  state.torneio.apostas[alvo].push({ apostador, quantia: pts })
 
   await sock.sendMessage(jid, {
-    text: `💰 *${apostador}* apostou *${pts} pontos* em *${alvo}*!\n\n🎲 Se *${alvo}* ganhar, recebes o dobro (${pts * 2} pts)!`
+    text: `💰 *${apostador}* apostou *${pts} pontos* em *${alvo}*!\n🎲 Se ganhar, recebes *${pts * 2} pontos*!`
   })
 }
 
+// ════════════════════════════════════════
+//  INICIAR FASE DE BATALHAS (bracket)
+// ════════════════════════════════════════
+async function iniciarFase(sock, jid) {
+  state.torneio.inscritos = state.torneio.inscritos.sort(() => Math.random() - 0.5)
+  state.torneio.fase = 'batalha'
+  state.torneio.rodada = 1
+  state.torneio.confrontos = gerarConfrontos(state.torneio.inscritos)
+  state.torneio.vencedores = []
+  state.torneio.confrontoAtual = 0
+
+  let bracket = `⚔️ *TORNEIO COMEÇOU!*\n📊 *BRACKET — RODADA ${state.torneio.rodada}*\n\n`
+  state.torneio.confrontos.forEach((c, i) => {
+    if (c.bye) bracket += `🟡 ${c.j1} — avança automaticamente\n`
+    else bracket += `⚔️ Confronto ${i + 1}: *${c.j1}* vs *${c.j2}*\n`
+  })
+  bracket += `\n🎮 As batalhas começam agora!`
+
+  await sock.sendMessage(jid, { text: bracket })
+  await sleep(3000)
+  await iniciarProximoBatalha(sock, jid)
+}
+
+// ════════════════════════════════════════
+//  PRÓXIMA BATALHA
+// ════════════════════════════════════════
+async function iniciarProximoBatalha(sock, jid) {
+  while (state.torneio.confrontoAtual < state.torneio.confrontos.length) {
+    const c = state.torneio.confrontos[state.torneio.confrontoAtual]
+    if (c.bye) {
+      state.torneio.vencedores.push(c.j1)
+      state.torneio.confrontoAtual++
+      continue
+    }
+    break
+  }
+
+  if (state.torneio.confrontoAtual >= state.torneio.confrontos.length) {
+    await verificarFimRodada(sock, jid)
+    return
+  }
+
+  const confronto = state.torneio.confrontos[state.torneio.confrontoAtual]
+  const u1 = getUser(confronto.j1)
+  const u2 = getUser(confronto.j2)
+
+  state.torneio.batalhaAtual = {
+    j1: confronto.j1, j2: confronto.j2,
+    vida1: u1.vida || 100, vida2: u2.vida || 100,
+    atk1: u1.ataque || 10, atk2: u2.ataque || 10,
+    hab1: u1.habilidade_ativa, hab2: u2.habilidade_ativa,
+    pet1: u1.pet_ativo, pet2: u2.pet_ativo,
+    escudo1: u1.escudo || false, escudo2: u2.escudo || false,
+    turno: confronto.j1,
+    timeout: null
+  }
+
+  await sock.sendMessage(jid, {
+    text: `⚔️ *BATALHA ${state.torneio.confrontoAtual + 1}!*\n\n🔴 *${confronto.j1}* ❤️ ${state.torneio.batalhaAtual.vida1} HP\nvs\n🔵 *${confronto.j2}* ❤️ ${state.torneio.batalhaAtual.vida2} HP\n\n🎮 É o turno de *${confronto.j1}*!\nUsa *!atacar* para atacar!\n\n⏱️ 60 segundos para atacar ou perdes o turno!`
+  })
+
+  state.torneio.batalhaAtual.timeout = setTimeout(async () => {
+    if (!state.torneio?.batalhaAtual) return
+    const b = state.torneio.batalhaAtual
+    await sock.sendMessage(jid, { text: `⏰ *${b.turno}* demorou demais! Perdeu o turno!\n\nAgora é a vez de *${b.turno === b.j1 ? b.j2 : b.j1}*!` })
+    b.turno = b.turno === b.j1 ? b.j2 : b.j1
+    reiniciarTimeout(sock, jid)
+  }, 60000)
+}
+
+function reiniciarTimeout(sock, jid) {
+  if (!state.torneio?.batalhaAtual) return
+  clearTimeout(state.torneio.batalhaAtual.timeout)
+  state.torneio.batalhaAtual.timeout = setTimeout(async () => {
+    if (!state.torneio?.batalhaAtual) return
+    const b = state.torneio.batalhaAtual
+    await sock.sendMessage(jid, { text: `⏰ *${b.turno}* demorou demais! Perdeu o turno!` })
+    b.turno = b.turno === b.j1 ? b.j2 : b.j1
+    reiniciarTimeout(sock, jid)
+  }, 60000)
+}
+
+// ════════════════════════════════════════
+//  ATACAR NO TORNEIO (interativo)
+// ════════════════════════════════════════
+async function atacarTorneio(sock, jid, nome) {
+  if (!state.torneio?.batalhaAtual) return false
+  const b = state.torneio.batalhaAtual
+
+  if (nome !== b.j1 && nome !== b.j2) return false
+  if (b.turno !== nome) {
+    await sock.sendMessage(jid, { text: `⏳ Não é o teu turno, *${nome}*! Aguarda *${b.turno}*!` })
+    return true
+  }
+
+  clearTimeout(b.timeout)
+
+  const ehJ1 = nome === b.j1
+  const oponente = ehJ1 ? b.j2 : b.j1
+  const atkBase = ehJ1 ? b.atk1 : b.atk2
+  const hab = ehJ1 ? b.hab1 : b.hab2
+  const habOp = ehJ1 ? b.hab2 : b.hab1
+  const escudoOp = ehJ1 ? b.escudo2 : b.escudo1
+
+  let dano = Math.floor(atkBase * (0.8 + Math.random() * 0.6))
+  let efeitos = []
+
+  if (hab === 'rasengan' && Math.random() < 0.25) { dano *= 2; efeitos.push('💥 CRÍTICO com Rasengan!') }
+  if (hab === 'bankai') { dano = Math.floor(dano * 1.5); efeitos.push('🌑 Bankai ativado!') }
+  if (hab === 'kamehameha' && Math.random() < 0.15) { efeitos.push(`⚡ *KNOCKDOWN! ${oponente} perde o próximo turno!*`) }
+  if (hab === 'modo_seis') { dano = Math.floor(dano * 2); efeitos.push('🔱 Modo Seis Caminhos!') }
+
+  if (habOp === 'sharingan' && Math.random() < 0.20) { dano = 0; efeitos.push(`👁️ *${oponente} esquivou com Sharingan!*`) }
+  if (habOp === 'haki') { dano = Math.floor(dano * 0.7); efeitos.push(`⚫ *Haki de ${oponente} reduziu o dano!*`) }
+
+  if (escudoOp) {
+    dano = 0
+    if (ehJ1) b.escudo2 = false; else b.escudo1 = false
+    efeitos.push(`🛡️ *${oponente} bloqueou com escudo!*`)
+  }
+
+  if ((ehJ1 ? b.pet1 : b.pet2) === 'kurama') {
+    const regen = 10
+    if (ehJ1) b.vida1 = Math.min(b.vida1 + regen, 150)
+    else b.vida2 = Math.min(b.vida2 + regen, 150)
+    efeitos.push(`🦊 *Kurama regenerou ${regen} HP!*`)
+  }
+
+  if (ehJ1) b.vida2 = Math.max(0, b.vida2 - dano)
+  else b.vida1 = Math.max(0, b.vida1 - dano)
+
+  const vidaOponente = ehJ1 ? b.vida2 : b.vida1
+  const habilidades = {
+    sharingan: '👁️ Sharingan', rasengan: '🌀 Rasengan',
+    haki: '⚫ Haki', bankai: '🌑 Bankai',
+    kamehameha: '💥 Kamehameha', modo_seis: '🔱 Seis Caminhos'
+  }
+  const habNome = habilidades[hab] || 'Ataque normal'
+
+  let txt = `⚔️ *${nome}* usou *${habNome}*!\n💢 ${dano} de dano em *${oponente}*!\n\n`
+  if (efeitos.length > 0) txt += efeitos.join('\n') + '\n\n'
+  txt += `❤️ ${b.j1}: ${b.vida1} HP\n❤️ ${b.j2}: ${b.vida2} HP\n\n`
+
+  if (vidaOponente <= 0) {
+    clearTimeout(b.timeout)
+    txt += `💀 *${oponente}* foi derrotado!\n🏅 *${nome}* venceu a batalha!`
+    await sock.sendMessage(jid, { text: txt })
+
+    const user = getUser(nome)
+    user.xp += 30; user.pontos += 20; user.vitorias = (user.vitorias || 0) + 1
+    saveUser(nome, user)
+
+    state.torneio.vencedores.push(nome)
+    state.torneio.confrontoAtual++
+    state.torneio.batalhaAtual = null
+
+    await sleep(3000)
+    await iniciarProximoBatalha(sock, jid)
+    return true
+  }
+
+  b.turno = oponente
+  txt += `🎮 Turno de *${oponente}* — usa *!atacar*!`
+  await sock.sendMessage(jid, { text: txt })
+  reiniciarTimeout(sock, jid)
+  return true
+}
+
+// ════════════════════════════════════════
+//  VERIFICAR FIM DA RODADA
+// ════════════════════════════════════════
+async function verificarFimRodada(sock, jid) {
+  if (state.torneio.vencedores.length === 1) {
+    const campeao = state.torneio.vencedores[0]
+    const user = getUser(campeao)
+
+    user.xp += 150; user.pontos += 120
+    user.vitorias = (user.vitorias || 0) + 1
+    user.titulo = '🏆 Campeão do Torneio'
+    if (!user.habilidades) user.habilidades = []
+    if (!user.habilidades.find(h => h.id === 'modo_seis')) {
+      user.habilidades.push({ id: 'modo_seis', ...ITENS['modo_seis'] })
+    }
+    saveUser(campeao, user)
+
+    if (state.torneio.modo === 'clans' && state.torneio.claDosInscritos) {
+      const nomeCla = state.torneio.claDosInscritos[campeao]
+      if (nomeCla) {
+        const social = JSON.parse(fs.readFileSync('./data/social.json'))
+        const clan = Object.values(social.clans).find(c => c.nome === nomeCla)
+        if (clan) {
+          for (const membro of clan.membros) {
+            const membroUser = getUser(membro)
+            membroUser.xp += 80
+            membroUser.pontos += 60
+            saveUser(membro, membroUser)
+          }
+          await sock.sendMessage(jid, {
+            text: `🎉 *${clan.emblema} ${clan.nome}* venceu o Torneio de Clãs!\n👑 Representante: *${campeao}*\n\n+80 XP e +60 pontos para todos os membros: ${clan.membros.join(', ')}`
+          })
+        }
+      }
+    } else {
+      await pagarApostas(sock, jid, campeao)
+      await enviarVitoriaTorneio(sock, jid, campeao)
+    }
+
+    state.torneio = null
+    return
+  }
+
+  state.torneio.rodada++
+  state.torneio.inscritos = [...state.torneio.vencedores]
+  state.torneio.confrontos = gerarConfrontos(state.torneio.inscritos)
+  state.torneio.vencedores = []
+  state.torneio.confrontoAtual = 0
+
+  let bracket = `📊 *RODADA ${state.torneio.rodada}*\n\n`
+  state.torneio.confrontos.forEach((c, i) => {
+    if (c.bye) bracket += `🟡 ${c.j1} — avança automaticamente\n`
+    else bracket += `⚔️ Confronto ${i + 1}: *${c.j1}* vs *${c.j2}*\n`
+  })
+
+  await sock.sendMessage(jid, { text: bracket })
+  await sleep(3000)
+  await iniciarProximoBatalha(sock, jid)
+}
+
+// ════════════════════════════════════════
+//  TORNEIO DE CLÃS
+// ════════════════════════════════════════
+async function torneioClans(sock, jid) {
+  if (state.torneio) {
+    await sock.sendMessage(jid, { text: '🏆 Já há um torneio em curso! Termina esse primeiro.' })
+    return
+  }
+
+  const social = JSON.parse(fs.readFileSync('./data/social.json'))
+  const clans = Object.values(social.clans || {})
+
+  const participantes = clans.filter(c => c.representante && c.membros.includes(c.representante))
+
+  if (participantes.length < 2) {
+    await sock.sendMessage(jid, { text: '❌ Precisas de pelo menos 2 clãs com representante definido!\nUsa *!cla representante @membro* em cada clã.' })
+    return
+  }
+
+  state.torneio = {
+    jid,
+    inscritos: participantes.map(c => c.representante),
+    apostas: {},
+    fase: 'inscricao',
+    batalhaAtual: null,
+    modo: 'clans',
+    claDosInscritos: {}
+  }
+
+  for (const clan of participantes) {
+    state.torneio.claDosInscritos[clan.representante] = clan.nome
+  }
+
+  await sock.sendMessage(jid, {
+    text: `⚔️ *TORNEIO DE CLÃS INICIADO!*\n\nRepresentantes:\n${participantes.map(c => `${c.emblema} ${c.nome}: *${c.representante}*`).join('\n')}\n\n🎮 As batalhas começam em breve!`
+  })
+
+  await sleep(3000)
+  await iniciarFase(sock, jid)
+}
+
+// ════════════════════════════════════════
+//  TORNEIO SEMANAL AUTOMÁTICO
+// ════════════════════════════════════════
+function agendarTorneioSemanal(sock, jid) {
+  setInterval(async () => {
+    const agora = new Date()
+    if (agora.getDay() === 6 && agora.getHours() === 20 && agora.getMinutes() === 0) {
+      if (state.torneio) return
+
+      await sock.sendMessage(jid, {
+        text: `🏆 *TORNEIO SEMANAL AUTOMÁTICO!*\n\nÉ sábado e são 20h — hora do grande torneio!\n\nInscreve-te com *!inscrever*\nO prémio desta semana é DOBRADO! 🎁`
+      })
+
+      state.torneio = { jid, inscritos: [], apostas: {}, fase: 'inscricao', batalhaAtual: null, multiplicador: 2, modo: 'normal' }
+
+      setTimeout(async () => {
+        if (!state.torneio || state.torneio.inscritos.length < 2) {
+          if (state.torneio) {
+            await sock.sendMessage(jid, { text: '❌ Torneio semanal cancelado — participantes insuficientes.' })
+            await devolverApostas(sock, jid)
+            state.torneio = null
+          }
+          return
+        }
+        await iniciarFase(sock, jid)
+      }, 120000)
+    }
+  }, 60000)
+}
+
+// ════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════
+function gerarConfrontos(participantes) {
+  const lista = [...participantes]
+  const confrontos = []
+  for (let i = 0; i < lista.length; i += 2) {
+    if (i + 1 < lista.length) confrontos.push({ j1: lista[i], j2: lista[i + 1], bye: false })
+    else confrontos.push({ j1: lista[i], bye: true })
+  }
+  return confrontos
+}
+
+async function pagarApostas(sock, jid, vencedor) {
+  if (!state.torneio?.apostas?.[vencedor]?.length) return
+  const ganhadores = []
+  for (const { apostador, quantia } of state.torneio.apostas[vencedor]) {
+    const user = getUser(apostador)
+    user.pontos += quantia * 2
+    saveUser(apostador, user)
+    ganhadores.push(`${apostador} (+${quantia * 2} pts)`)
+  }
+  await sock.sendMessage(jid, { text: `💰 *APOSTAS PAGAS!*\n\n${ganhadores.join('\n')}` })
+}
+
 async function devolverApostas(sock, jid) {
-  if (!torneioAtivo?.apostas) return
-  for (const [, lista] of Object.entries(torneioAtivo.apostas)) {
+  if (!state.torneio?.apostas) return
+  for (const lista of Object.values(state.torneio.apostas)) {
     for (const { apostador, quantia } of lista) {
       const user = getUser(apostador)
       user.pontos += quantia
@@ -95,251 +442,36 @@ async function devolverApostas(sock, jid) {
   }
 }
 
-async function pagarApostas(sock, jid, vencedor) {
-  if (!torneioAtivo?.apostas?.[vencedor]) return
-  const ganhadores = []
-  for (const { apostador, quantia } of torneioAtivo.apostas[vencedor]) {
-    const user = getUser(apostador)
-    user.pontos += quantia * 2
-    saveUser(apostador, user)
-    ganhadores.push(`${apostador} (+${quantia * 2} pts)`)
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+async function verTorneio(sock, jid) {
+  if (!state.torneio) {
+    await sock.sendMessage(jid, { text: '🏆 Nenhum torneio ativo. Usa !torneio para iniciar!' })
+    return
   }
-  if (ganhadores.length > 0) {
+
+  if (state.torneio.fase === 'inscricao') {
     await sock.sendMessage(jid, {
-      text: `💰 *APOSTAS PAGAS!*\n\n${ganhadores.join('\n')}`
+      text: `🏆 *TORNEIO — Inscrições abertas*\n\n👥 Inscritos (${state.torneio.inscritos.length}): ${state.torneio.inscritos.join(', ') || 'nenhum'}\n\n⚔️ Inscreve-te com *!inscrever*\n💰 Aposta com *!apostar <nome> <pontos>*`
+    })
+    return
+  }
+
+  const b = state.torneio.batalhaAtual
+  if (b) {
+    await sock.sendMessage(jid, {
+      text: `⚔️ *BATALHA EM CURSO — Rodada ${state.torneio.rodada}*\n\n🔴 *${b.j1}* ❤️ ${b.vida1} HP\n🔵 *${b.j2}* ❤️ ${b.vida2} HP\n\n🎮 Turno de *${b.turno}* — usa *!atacar*!`
     })
   }
 }
 
-// ════════════════════════════════════════
-//  SIMULAR BATALHA COM HABILIDADES
-// ════════════════════════════════════════
-function simularBatalhaCompleta(j1, j2) {
-const u1 = getUser(j1)
-const u2 = getUser(j2)
-  let vida1 = u1.vida || 100
-  let vida2 = u2.vida || 100
-  const atk1 = u1.ataque || 10
-  const atk2 = u2.ataque || 10
-  const hab1 = u1.habilidade_ativa
-  const hab2 = u2.habilidade_ativa
-  const pet1 = u1.pet_ativo
-  const pet2 = u2.pet_ativo
-  const log = []
-
-  // Aplica bônus de pet
-  const petBonus = (petId) => {
-    const pet = ITENS[petId]
-    return pet?.atk || 0
-  }
-
-  const atk1Final = atk1 + petBonus(pet1) + (u1.nivel || 1) * 3 + Math.random() * 20
-  const atk2Final = atk2 + petBonus(pet2) + (u2.nivel || 1) * 3 + Math.random() * 20
-
-  // Simula 3 rondas
-  for (let i = 0; i < 3; i++) {
-    let dano1 = Math.floor(atk1Final * (0.8 + Math.random() * 0.4))
-    let dano2 = Math.floor(atk2Final * (0.8 + Math.random() * 0.4))
-
-    // Habilidades j1
-    if (hab1 === 'rasengan' && Math.random() < 0.25) { dano1 *= 2; log.push(`💥 ${j1} acertou crítico com Rasengan!`) }
-    if (hab1 === 'bankai') dano1 = Math.floor(dano1 * 1.5)
-    if (hab1 === 'kamehameha' && Math.random() < 0.15) { dano2 = 0; log.push(`⚡ ${j1} fez knockdown com Kamehameha!`) }
-
-    // Habilidades j2
-    if (hab2 === 'sharingan' && Math.random() < 0.20) { dano1 = 0; log.push(`👁️ ${j2} esquivou com Sharingan!`) }
-    if (hab2 === 'haki') dano1 = Math.floor(dano1 * 0.7)
-    if (hab2 === 'modo_seis') { dano2 *= 2; log.push(`🔱 ${j2} ativou Modo Seis Caminhos!`) }
-
-    // Escudo
-    if (u1.escudo) { dano2 = 0; u1.escudo = false; log.push(`🛡️ ${j1} bloqueou com escudo!`) }
-    if (u2.escudo) { dano1 = 0; u2.escudo = false; log.push(`🛡️ ${j2} bloqueou com escudo!`) }
-
-    // Pet Kurama regen
-    if (pet1 === 'kurama') vida1 = Math.min(vida1 + 10, u1.vida || 100)
-    if (pet2 === 'kurama') vida2 = Math.min(vida2 + 10, u2.vida || 100)
-
-    vida1 -= dano2
-    vida2 -= dano1
-  }
-
-  return {
-    vencedor: vida1 >= vida2 ? j1 : j2,
-    perdedor: vida1 >= vida2 ? j2 : j1,
-    log: log.slice(0, 3)
-  }
-}
-
-// ════════════════════════════════════════
-//  CORRER TORNEIO COM BRACKET
-// ════════════════════════════════════════
-async function correrTorneio(sock, jid) {
-  let participantes = [...torneioAtivo.inscritos].sort(() => Math.random() - 0.5)
-  torneioAtivo.fase = 'batalha'
-  let rodada = 1
-
-  // Bracket visual
-  const bracket = gerarBracket(participantes)
-  await sock.sendMessage(jid, {
-    text: `⚔️ *TORNEIO COMEÇOU!*\n\n${bracket}\n\n🎮 As batalhas começam agora!`
-  })
-
-  await sleep(3000)
-
-  while (participantes.length > 1) {
-    const vencedores = []
-    let txtRodada = `🥊 *RODADA ${rodada}*\n\n`
-
-    for (let i = 0; i < participantes.length; i += 2) {
-      if (i + 1 >= participantes.length) {
-        vencedores.push(participantes[i])
-        txtRodada += `🟡 *${participantes[i]}* — bye (avança)\n\n`
-        continue
-      }
-
-      const j1 = participantes[i]
-      const j2 = participantes[i + 1]
-      const resultado = simularBatalhaCompleta(j1, j2)
-
-      vencedores.push(resultado.vencedor)
-      txtRodada += `⚔️ *${j1}* vs *${j2}*\n`
-      if (resultado.log.length > 0) txtRodada += resultado.log.join('\n') + '\n'
-      txtRodada += `🏅 Vencedor: *${resultado.vencedor}*\n\n`
-    }
-
-    await sock.sendMessage(jid, { text: txtRodada })
-    participantes = vencedores
-    rodada++
-    await sleep(3000)
-  }
-
-  const campeao = participantes[0]
-  const user = getUser(campeao)
-  user.xp += 150
-  user.pontos += 120
-  user.vitorias = (user.vitorias || 0) + 1
-  user.titulo = '🏆 Campeão do Torneio'
-  // Habilidade exclusiva para campeão
-  if (!user.habilidades) user.habilidades = []
-  if (!user.habilidades.find(h => h.id === 'modo_seis')) {
-    user.habilidades.push({ id: 'modo_seis', ...ITENS['modo_seis'] })
-  }
-  saveUser(campeao, user)
-
-  await pagarApostas(sock, jid, campeao)
-
-  await sock.sendMessage(jid, {
-    text: `🎉 *TORNEIO ENCERRADO!*\n\n👑 *CAMPEÃO: ${campeao}*\n\n+150 XP | +120 pontos\n🎁 Título: 🏆 Campeão do Torneio\n🎁 Habilidade desbloqueada: 🔱 Modo Seis Caminhos\n\n${gerarPodio(torneioAtivo.inscritos, campeao)}`
-  })
-
-  torneioAtivo = null
-}
-
-// ════════════════════════════════════════
-//  TORNEIO DE CLÃS
-// ════════════════════════════════════════
-async function torneioClans(sock, jid) {
-  const fs = require('fs')
-  const social = JSON.parse(fs.readFileSync('./data/social.json'))
-  const clans = Object.values(social.clans || {})
-
-  if (clans.length < 2) {
-    await sock.sendMessage(jid, { text: '❌ Precisas de pelo menos 2 clãs para o torneio!\nCria um clã com *!criar-cla <nome>*' })
-    return
-  }
-
-  await sock.sendMessage(jid, { text: `⚔️ *TORNEIO DE CLÃS INICIADO!*\n\n${clans.map(c => `${c.emblema} ${c.nome} (${c.membros.length} membros)`).join('\n')}\n\n🎮 Batalhas a simular...` })
-
-  await sleep(2000)
-
-  let participantes = clans.sort(() => Math.random() - 0.5)
-
-  while (participantes.length > 1) {
-    const vencedores = []
-    let txt = ''
-
-    for (let i = 0; i < participantes.length; i += 2) {
-      if (i + 1 >= participantes.length) { vencedores.push(participantes[i]); continue }
-
-      const c1 = participantes[i]
-      const c2 = participantes[i + 1]
-
-      // Força do clã = soma de ataque dos membros
-      const forcaC1 = c1.membros.reduce((s, m) => s + (getUser(m).user.ataque || 10) + (getUser(m).user.nivel || 1) * 5, 0) + Math.random() * 50
-      const forcaC2 = c2.membros.reduce((s, m) => s + (getUser(m).user.ataque || 10) + (getUser(m).user.nivel || 1) * 5, 0) + Math.random() * 50
-
-      const vencedor = forcaC1 >= forcaC2 ? c1 : c2
-      vencedores.push(vencedor)
-      txt += `${c1.emblema} *${c1.nome}* vs ${c2.emblema} *${c2.nome}* → 🏅 *${vencedor.nome}*\n`
-    }
-
-    await sock.sendMessage(jid, { text: txt })
-    participantes = vencedores
-    await sleep(2000)
-  }
-
-  const clanVencedor = participantes[0]
-
-  // Recompensa membros do clã vencedor
-  for (const membro of clanVencedor.membros) {
-    const user = getUser(membro)
-    user.xp += 80; user.pontos += 60
-    saveUser(membro, user)
-  }
-
-  await sock.sendMessage(jid, {
-    text: `🎉 *TORNEIO DE CLÃS ENCERRADO!*\n\n👑 *CAMPEÃO: ${clanVencedor.emblema} ${clanVencedor.nome}*\n\n+80 XP e +60 pontos para todos os membros!\n👥 Membros: ${clanVencedor.membros.join(', ')}`
-  })
-}
-
-// ════════════════════════════════════════
-//  TORNEIO SEMANAL AUTOMÁTICO
-// ════════════════════════════════════════
-function agendarTorneioSemanal(sock, jid) {
-  // Todo sábado às 20:00
-  setInterval(async () => {
-    const agora = new Date()
-    if (agora.getDay() === 6 && agora.getHours() === 20 && agora.getMinutes() === 0) {
-      await sock.sendMessage(jid, {
-        text: `🏆 *TORNEIO SEMANAL AUTOMÁTICO!*\n\nÉ sábado e são 20h — hora do grande torneio!\n\nInscreve-te com *!inscrever*\nO prémio desta semana é DOBRADO! 🎁`
-      })
-      torneioAtivo = {
-        jid, tipo: 'semanal', inscritos: [],
-        apostas: {}, fase: 'inscricao',
-        multiplicador: 2
-      }
-      setTimeout(async () => {
-        if (!torneioAtivo || torneioAtivo.inscritos.length < 2) {
-          torneioAtivo = null; return
-        }
-        await correrTorneio(sock, jid)
-      }, 120000) // 2 minutos para inscrições
-    }
-  }, 60000)
-}
-
-// ════════════════════════════════════════
-//  HELPERS
-// ════════════════════════════════════════
-function gerarBracket(participantes) {
-  let txt = '📊 *BRACKET DO TORNEIO*\n\n'
-  for (let i = 0; i < participantes.length; i += 2) {
-    if (i + 1 < participantes.length) {
-      txt += `⚔️ ${participantes[i]} vs ${participantes[i + 1]}\n`
-    } else {
-      txt += `🟡 ${participantes[i]} (bye)\n`
-    }
-  }
-  return txt
-}
-
-function gerarPodio(todos, campeao) {
-  return `🏆 *PÓDIO FINAL*\n🥇 ${campeao}\n${todos.filter(p => p !== campeao).map((p, i) => `${['🥈','🥉'][i] || `${i+2}.`} ${p}`).join('\n')}`
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
-
 module.exports = {
-  iniciarTorneio, inscrever, apostar,
-  torneioClans, agendarTorneioSemanal
+  iniciarTorneio,
+  inscrever,
+  apostar,
+  atacarTorneio,
+  verTorneio,
+  torneioClans,
+  agendarTorneioSemanal,
+  state
 }

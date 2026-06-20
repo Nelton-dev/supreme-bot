@@ -8,6 +8,7 @@ const {
   enviarVitoriaTorneio,
   enviarLevelUp,
   enviarVitoriaBatalha,
+  buscarImagemAnime: buscarImagemPersonagem
 } = require('./modules/imagens')
 const { enviarHumano, digitando, delay } = require('./modules/humano')
 const { ajuda } = require('./modules/ajuda')
@@ -19,7 +20,16 @@ const {
   iniciarAdivinhar, verificarAdivinhar,
   waifuDoDia, desafioDiario, completarDesafio,
 } = require('./modules/adivinhar')
-const { iniciarTorneio, inscrever, apostar, torneioClans, agendarTorneioSemanal } = require('./modules/torneio')
+const {
+  iniciarTorneio,
+  inscrever,
+  apostar,
+  torneioClans,
+  agendarTorneioSemanal,
+  atacarTorneio,
+  verTorneio,
+  state
+} = require('./modules/torneio')
 const { verLoja, verLojaTudo, comprar, equiparHabilidade, equiparPet, usarPocao } = require('./modules/loja')
 const { agendarNotificacoes } = require('./modules/agendador')
 const { responderIA, limparHistorico } = require('./modules/ia')
@@ -30,7 +40,8 @@ const { imagemParaSticker, stickerReacao, verificarGatilho } = require('./module
 const {
   criarCla, entrarCla, sairCla, verClans, verCla,
   propor, aceitarCasamento, recusarCasamento, divorcio, verCasal,
-  verMissoes, atualizarMissao
+  verMissoes, atualizarMissao,
+  elegerRepresentante
 } = require('./modules/social')
 const {
   iniciarForca, tentarLetra, tentarPalavra,
@@ -125,48 +136,62 @@ module.exports = function iniciarHandler(sock) {
     if (texto.startsWith('!batalha ')) return desafiar(sock, jid, nome, raw.split(' ').slice(1).join(' '))
     if (texto === '!aceitar') return aceitar(sock, jid, nome)
     if (texto === '!recusar') return recusar(sock, jid, nome)
-    if (texto === '!atacar') return atacar(sock, jid, nome)
 
-    // ─── TORNEIO ─────────────────────────────────────────────
+    // ─── TORNEIO (interativo + comandos gerais) ──────────────
     if (texto === '!torneio') return iniciarTorneio(sock, jid)
     if (texto === '!inscrever') return inscrever(sock, jid, nome)
+    if (texto.startsWith('!apostar ')) {
+      const partes = raw.split(' ')
+      if (partes.length >= 3) return apostar(sock, jid, nome, partes[1], partes[2])
+      else await sock.sendMessage(jid, { text: '❌ Uso: !apostar <nome> <pontos>' })
+      return
+    }
+    if (texto === '!vertorneio' || texto === '!torneio status') return verTorneio(sock, jid)
+    if (texto === '!torneio clans') return torneioClans(sock, jid)
 
+    // ─── ATACAR (RPG ou TORNEIO) ─────────────────────────────
+if (texto === '!atacar') {
+  if (
+    state.torneio?.batalhaAtual &&
+    (nome === state.torneio.batalhaAtual.j1 || nome === state.torneio.batalhaAtual.j2)
+  ) {
+    return atacarTorneio(sock, jid, nome)
+  }
+  return atacar(sock, jid, nome)
+}
     // ─── WAIFU / DIÁRIO ──────────────────────────────────────
-if (texto === '!waifu')
-  return waifuDoDia(sock, jid)
+    if (texto === '!waifu') return waifuDoDia(sock, jid)
     if (texto === '!diario') return desafioDiario(sock, jid, nome)
     if (texto === '!completar') return completarDesafio(sock, jid, nome)
 
     // ─── LOJA ────────────────────────────────────────────────
     if (texto === '!loja') return verLoja(sock, jid)
+    if (texto === '!loja tudo') return verLojaTudo(sock, jid)
+    if (texto.startsWith('!loja ')) {
+      const categoria = texto.split(' ')[1]
+      if (categoria) return verLoja(sock, jid, categoria)
+    }
     if (texto.startsWith('!comprar ')) return comprar(sock, jid, nome, texto.split(' ')[1])
 
     // ─── PERFIL / RANKING ────────────────────────────────────
+    if (texto === '!perfil') return UI.mostrarPerfil(sock, jid, nome)
 
-if (texto === '!perfil')
-  return UI.mostrarPerfil(sock, jid, nome)
+    if (texto === '!ranking') {
+      const db = todosUsuarios()
+      const sorted = Object.entries(db)
+        .sort((a, b) => b[1].xp - a[1].xp)
+        .slice(0, 10)
+      if (!sorted.length) {
+        return sock.sendMessage(jid, { text: '📊 Nenhum dado ainda!' })
+      }
+      const top3 = sorted.slice(0, 3)
+      return enviarRankingComImagem(sock, jid, sorted, top3)
+    }
 
-   if (texto === '!ranking') {
-  const db = todosUsuarios()
-
-  const sorted = Object.entries(db)
-    .sort((a, b) => b[1].xp - a[1].xp)
-    .slice(0, 10)
-
-  if (!sorted.length) {
-    return sock.sendMessage(jid, { text: '📊 Nenhum dado ainda!' })
-  }
-
-  const top3 = sorted.slice(0, 3)
-
-  return enviarRankingComImagem(sock, jid, sorted, top3)
-}
     // ─── MENÇÃO INTELIGENTE ──────────────────────────────────
-    // Responde quando mencionam "animebot", "bot" ou "@bot" no início
     const mencoes = ['animebot', '@animebot', 'bot,', 'bot ']
     const foiMencionado = mencoes.some(m => texto.startsWith(m))
     if (foiMencionado) {
-      // Remove a menção e pega só a pergunta
       let pergunta = raw
       mencoes.forEach(m => { pergunta = pergunta.replace(new RegExp(`^${m}`, 'i'), '').trim() })
       if (pergunta.length > 1) return chatIA(sock, jid, pergunta, nome)
@@ -255,7 +280,10 @@ if (texto === '!perfil')
 
     // ─── ÁUDIO ───────────────────────────────────────────────
     if (texto.startsWith('!musica ')) return gerarMusica(sock, jid, raw.split(' ').slice(1).join(' '))
-    if (texto.startsWith('!voz ')) return gerarVoz(sock, jid, raw.split(' ').slice(1).join(' '))
+    if (texto.startsWith('!voz ')) {
+      const textoFala = raw.slice(5).trim()  // remove "!voz " e espaços
+      return gerarVoz(sock, jid, textoFala)
+    }
     if (texto === '!frase') return fraseFamosa(sock, jid)
 
     // ─── ANILIST ─────────────────────────────────────────────
@@ -305,6 +333,10 @@ if (texto === '!perfil')
     if (texto.startsWith('!entrar-cla ')) return entrarCla(sock, jid, nome, raw.split(' ').slice(1).join(' '))
     if (texto === '!sair-cla') return sairCla(sock, jid, nome)
     if (texto === '!clans') return verClans(sock, jid)
+    if (texto.startsWith('!cla representante ')) {
+      const alvo = texto.split(' ').slice(2).join(' ').replace('@', '').trim()
+      return elegerRepresentante(sock, jid, nome, alvo)
+    }
     if (texto.startsWith('!cla ')) return verCla(sock, jid, raw.split(' ').slice(1).join(' '))
 
     // ─── CASAMENTO ───────────────────────────────────────────

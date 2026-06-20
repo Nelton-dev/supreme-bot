@@ -133,8 +133,6 @@ async function verClans(sock, jid) {
 async function verCla(sock, jid, nomeCla) {
   const social = carregarSocial()
 
-  // Se não passou nome, busca pelo utilizador atual — mas aqui não temos o nome
-  // Então busca por nome de clã
   const cla = social.clans[nomeCla]
   if (!cla) {
     await sock.sendMessage(jid, { text: `❌ Clã *${nomeCla}* não encontrado!` })
@@ -144,6 +142,34 @@ async function verCla(sock, jid, nomeCla) {
   await sock.sendMessage(jid, {
     text: `${cla.emblema} *CLÃ ${cla.nome.toUpperCase()}*\n\n👑 Líder: ${cla.lider}\n👥 Membros (${cla.membros.length}):\n${cla.membros.map(m => `  • ${m}`).join('\n')}\n⭐ XP do Clã: ${cla.xp}\n🏅 Nível: ${cla.nivel}\n📅 Criado: ${cla.criado}`
   })
+}
+
+// ════════════════════════════════════════
+//  ELEGER REPRESENTANTE DO CLÃ
+// ════════════════════════════════════════
+async function elegerRepresentante(sock, jid, nome, alvo) {
+  const social = carregarSocial()
+
+  // Descobre o clã a que o remetente pertence
+  const entrada = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
+  if (!entrada) {
+    await sock.sendMessage(jid, { text: '❌ Não pertences a nenhum clã!' })
+    return
+  }
+
+  const [clanId, clan] = entrada
+
+  // Verifica se o alvo está no mesmo clã
+  if (!clan.membros.includes(alvo)) {
+    await sock.sendMessage(jid, { text: '❌ Esse membro não está no teu clã!' })
+    return
+  }
+
+  // Define o representante
+  clan.representante = alvo
+  salvarSocial(social)
+
+  await sock.sendMessage(jid, { text: `✅ *${alvo}* é agora o representante do clã *${clan.nome}* para os torneios!` })
 }
 
 // ════════════════════════════════════════
@@ -188,8 +214,8 @@ async function aceitarCasamento(sock, jid, nome) {
   salvarSocial(social)
 
   // Bónus de XP para os dois
- const u1 = getUser(nome)
-const u2 = getUser(nomeProp)
+  const u1 = getUser(nome)
+  const u2 = getUser(nomeProp)
   u1.xp += 30; u2.xp += 30
   saveUser(nome, u1); saveUser(nomeProp, u2)
 
@@ -310,7 +336,17 @@ function atualizarMissao(nome, tipo) {
 }
 
 module.exports = {
-  criarCla, entrarCla, sairCla, verClans, verCla,
-  propor, aceitarCasamento, recusarCasamento, divorcio, verCasal,
-  verMissoes, atualizarMissao
+  criarCla,
+  entrarCla,
+  sairCla,
+  verClans,
+  verCla,
+  propor,
+  aceitarCasamento,
+  recusarCasamento,
+  divorcio,
+  verCasal,
+  verMissoes,
+  atualizarMissao,
+  elegerRepresentante   // <-- NOVA
 }

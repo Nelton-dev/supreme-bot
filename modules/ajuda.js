@@ -81,24 +81,38 @@ Inicia uma história colaborativa. Todos contribuem!
 *!continuar e então ele atacou...*
 Continua a história ativa.`,
 
-  torneio: `🏟️ *TORNEIO — Como funciona*
+  torneio: `🏟️ *TORNEIO INTERATIVO — Como funciona*
 
 *!torneio*
-Abre as inscrições para um torneio! Tens 60 segundos para inscrever participantes. Mínimo 2 pessoas.
+Abre as inscrições por 90 segundos. Mínimo 2 participantes.
 
 *!inscrever*
-Inscreve-te no torneio aberto. Corre rápido antes de fechar!
+Inscreve-te no torneio aberto.
 
-🔄 *Como funciona:*
-1️⃣ Admin usa *!torneio*
-2️⃣ Membros usam *!inscrever* em 60s
-3️⃣ Bot sorteia os confrontos automaticamente
-4️⃣ Batalhas são simuladas uma a uma
-5️⃣ O vencedor final ganha título especial + 100 XP + 80 pontos
+*!apostar <nome> <pontos>*
+Aposta os teus pontos num lutador. Se ele vencer, recebes o dobro!
 
-🏆 *Recompensas:*
-• 🥇 Campeão: +100 XP | +80 pts | Título exclusivo
-• As batalhas usam o teu nível e ataque do perfil`,
+*!vertorneio* ou *!torneio status*
+Vê o estado atual do torneio (inscrições ou batalha em curso).
+
+*!torneio clans*
+Inicia um torneio de clãs (interativo). Os representantes de cada clã lutam entre si. O clã vencedor ganha recompensas coletivas.
+
+⚔️ *BATALHAS POR TURNOS:*
+1️⃣ Após as inscrições, o bracket é gerado.
+2️⃣ Cada batalha é por turnos: o jogador da vez usa *!atacar*.
+3️⃣ Tens 60 segundos para atacar ou perdes o turno.
+4️⃣ As habilidades, pets e escudos do teu perfil são usados.
+5️⃣ O vencedor de cada combate avança para a próxima rodada.
+
+🏆 *RECOMPENSAS (Torneio Normal):*
+🥇 Campeão: +150 XP | +120 pts | Título exclusivo
+🎁 Habilidade secreta: 🔱 Modo Seis Caminhos
+⚔️ Vencedores de cada luta também ganham XP e pontos.
+
+🏆 *TORNEIO DE CLÃS:*
+Cada membro do clã vencedor recebe +80 XP e +60 pontos.
+Para definir o representante do clã: *!cla representante @membro*`,
 
   social: `👥 *SOCIAL — Clãs, Casamento e Missões*
 
@@ -117,6 +131,9 @@ Mostra todos os clãs do grupo ordenados por XP.
 
 *!cla Akatsuki*
 Mostra os detalhes de um clã específico: membros, líder, XP, nível.
+
+*!cla representante @membro*
+Define o representante do teu clã para torneios de clãs. Só pode ser um membro do próprio clã.
 
 ━━━━ 💍 CASAMENTO ━━━━
 *!propor Sakura*

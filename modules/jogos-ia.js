@@ -2,7 +2,7 @@ require('dotenv').config()
 const axios = require('axios')
 const { getUser, saveUser } = require('../db')
 
-// ─── CHAMADA GROQ ────────────────────────────────────────────
+// ─── CHAMADA GROQ (CORRIGIDA + FALLBACK) ─────────────────────
 async function groq(prompt, json = true) {
   try {
     const res = await axios.post(
@@ -24,7 +24,20 @@ async function groq(prompt, json = true) {
       { headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
     )
     const txt = res.data.choices[0].message.content.trim()
-    return json ? JSON.parse(txt.replace(/```json|```/g, '').trim()) : txt
+    if (!json) return txt
+
+    // 🔍 Extrai o primeiro objeto JSON válido da resposta
+    const match = txt.match(/\{[\s\S]*\}/)
+    if (!match) {
+      console.error('Groq: Nenhum JSON encontrado:', txt)
+      return null
+    }
+    try {
+      return JSON.parse(match[0])
+    } catch (parseErr) {
+      console.error('Groq erro JSON parse:', parseErr.message, 'Conteúdo:', txt)
+      return null
+    }
   } catch (err) {
     console.error('Groq erro:', err.message)
     return null
@@ -71,14 +84,33 @@ async function quizIAStart(sock, jid, dificuldade = 'medio') {
 async function verificarQuizIA(sock, jid, texto, nome) {
   if (!quizIAAtivo || quizIAAtivo.jid !== jid) return false
 
+  // ── 1. Tentar validação via IA ─────────────────────────────
   const correto = await groq(`
     A resposta correta é "${quizIAAtivo.resposta}".
     O utilizador respondeu "${texto}".
     É correto ou equivalente? Retorna JSON: {"correto":true/false}
   `)
 
-  if (!correto?.correto) return false
+  // ── 2. Fallback se a IA falhar: comparação simples ─────────
+  let acertou = false
+  if (correto && typeof correto.correto === 'boolean') {
+    acertou = correto.correto
+  } else {
+    // Comparação case/acento/plural básica
+    const respCorreta = quizIAAtivo.resposta
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .replace(/\s+/g, '')
+    const respUser = texto
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '')
+    acertou = respCorreta === respUser
+  }
 
+  if (!acertou) return false
+
+  // Acertou! Encerra quiz imediatamente
   clearTimeout(quizIATimeout)
   const dif = quizIAAtivo.dificuldade || 'medio'
   const xp = dif === 'facil' ? 15 : dif === 'medio' ? 25 : 40
@@ -232,13 +264,29 @@ async function sinopseIA(sock, jid) {
 async function verificarSinopse(sock, jid, texto, nome) {
   if (!sinopseAtiva || sinopseAtiva.jid !== jid) return false
 
+  // Validação com fallback
   const correto = await groq(`
     O anime correto é "${sinopseAtiva.anime}".
     O utilizador respondeu "${texto}".
     É correto ou equivalente? JSON: {"correto":true/false}
   `)
 
-  if (!correto?.correto) return false
+  let acertou = false
+  if (correto && typeof correto.correto === 'boolean') {
+    acertou = correto.correto
+  } else {
+    const respCorreta = sinopseAtiva.anime
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '')
+    const respUser = texto
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '')
+    acertou = respCorreta === respUser
+  }
+
+  if (!acertou) return false
 
   clearTimeout(sinopseTimeout)
   const user = getUser(nome)
@@ -312,9 +360,6 @@ async function continuarHistoria(sock, jid, contribuicao, nome) {
   }
 }
 
-// ════════════════════════════════════════
-//  EXPORTS
-// ════════════════════════════════════════
 module.exports = {
   quizIAStart,
   verificarQuizIA,
