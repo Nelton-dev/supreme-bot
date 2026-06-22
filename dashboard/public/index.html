@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – AnimeBot Universe</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    :root {
+      --red: #e94560;
+      --red-dark: #c73652;
+      --gold: #f0a500;
+      --gold-dark: #c98b00;
+      --bg: #07080d;
+      --surface: #0e0f1a;
+      --surface2: #141528;
+      --border: rgba(233,69,96,0.25);
+      --text: #e8e8f0;
+      --muted: #6b6d8a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(233,69,96,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(233,69,96,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      max-width: 1000px;
+      margin: auto;
+      padding: 30px 20px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, rgba(233,69,96,0.15), rgba(240,165,0,0.1));
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-size: 12px;
+      color: var(--red);
+      letter-spacing: 2px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, var(--red) 60%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: border-color .3s;
+    }
+
+    .stat-card:hover { border-color: var(--red); }
+
+    .stat-icon {
+      font-size: 1.6rem;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(233,69,96,0.1);
+      border-radius: 10px;
+    }
+
+    .stat-info span {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-info strong {
+      font-size: 1.5rem;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      flex: 1;
+      min-width: 180px;
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px 10px 38px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .3s;
+    }
+
+    .search-wrap input:focus { border-color: var(--red); }
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    .search-wrap::before {
+      content: '🔍';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(233,69,96,0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(233,69,96,0.45);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #000;
+      box-shadow: 0 4px 15px rgba(240,165,0,0.25);
+    }
+
+    .btn-warning:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(240,165,0,0.4);
+    }
+
+    .btn-danger {
+      background: rgba(192,57,43,0.15);
+      color: #e74c3c;
+      border: 1px solid rgba(192,57,43,0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(192,57,43,0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Table */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .badge {
+      background: rgba(233,69,96,0.15);
+      color: var(--red);
+      border: 1px solid rgba(233,69,96,0.3);
+      border-radius: 20px;
+      padding: 2px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      font-weight: 600;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background .2s;
+    }
+
+    tbody tr:hover { background: rgba(233,69,96,0.05); }
+    tbody tr:last-child { border-bottom: none; }
+
+    td {
+      padding: 13px 16px;
+      font-size: 0.88rem;
+      vertical-align: middle;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--red), var(--gold));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .rank-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(233,69,96,0.12);
+      color: var(--red);
+      border: 1px solid rgba(233,69,96,0.2);
+    }
+
+    .xp-bar-wrap { display: flex; align-items: center; gap: 8px; }
+
+    .xp-bar {
+      width: 60px;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .xp-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--red), var(--gold));
+    }
+
+    .awakened { font-size: 1rem; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(233,69,96,0.2);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: none;
+      z-index: 100;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      animation: slideIn .3s ease;
+    }
+
+    #toast.show { display: block; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Modal */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-bg.active { display: flex; }
+
+    .modal {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .modal-icon { font-size: 2.5rem; margin-bottom: 14px; }
+    .modal h2 { font-family: 'Rajdhani', sans-serif; font-size: 1.4rem; margin-bottom: 10px; }
+    .modal p { color: var(--muted); font-size: 0.87rem; margin-bottom: 24px; line-height: 1.5; }
+
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.9rem; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .stats-bar .stat-card:last-child { grid-column: 1/-1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="logo-badge">⚡ Admin Panel</div>
+    <h1>🌌 AnimeBot Universe</h1>
+    <p class="subtitle">Painel de controlo do universo — gerencia jogadores e dados</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-info">
+        <span>Total Jogadores</span>
+        <strong id="stat-total">—</strong>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-info">
+        <span>Despertados</span>
+        <strong id="stat-awake">—</strong>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-info">
+        <span>XP Total</span>
+        <strong id="stat-xp">—</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Pesquisar jogador..." oninput="filtrar()">
+    </div>
+    <button class="btn btn-primary" onclick="carregarUsuarios()">🔄 Atualizar</button>
+    <button class="btn btn-warning" onclick="confirmarReset()">⚠️ Resetar Dados</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Jogadores</span>
+      <span class="badge" id="badge-count">0 registros</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Jogador</th>
+          <th>Rank</th>
+          <th>Nível</th>
+          <th>XP</th>
+          <th>Pontos</th>
+          <th>Despertou</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-icon" id="modal-icon">⚠️</div>
+    <h2 id="modal-title">Confirmar ação</h2>
+    <p id="modal-msg">Tens a certeza?</p>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="modal-confirm">Confirmar</button>
+      <button class="btn btn-primary" onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let todosUsuarios = [];
+
+  function mostrarToast(msg, dur = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  function abrirModal(icon, title, msg, onConfirm) {
+    document.getElementById('modal-icon').textContent = icon;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-msg').textContent = msg;
+    document.getElementById('modal-confirm').onclick = () => { fecharModal(); onConfirm(); };
+    document.getElementById('modal').classList.add('active');
+  }
+
+  function fecharModal() {
+    document.getElementById('modal').classList.remove('active');
+  }
+
+  function getInitials(name) {
+    return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  }
+
+  function getXpMax(nivel) { return nivel * 100; }
+
+  function renderTabela(lista) {
+    const tbody = document.getElementById('tbody');
+    document.getElementById('badge-count').textContent = `${lista.length} registro${lista.length !== 1 ? 's' : ''}`;
+
+    if (!lista.length) {
+      tbody.innerHTML = `
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <div class="icon">🌌</div>
+            <p>Nenhum jogador encontrado no universo.</p>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = lista.map(u => {
+      const pct = Math.min(100, Math.round((u.xp / getXpMax(u.nivel)) * 100));
+      return `
+      <tr>
+        <td>
+          <div class="user-name">
+            <div class="avatar">${getInitials(u.nome)}</div>
+            ${u.nome}
+          </div>
+        </td>
+        <td><span class="rank-pill">${u.rank}</span></td>
+        <td>${u.nivel}</td>
+        <td>
+          <div class="xp-bar-wrap">
+            ${u.xp}
+            <div class="xp-bar"><div class="xp-fill" style="width:${pct}%"></div></div>
+          </div>
+        </td>
+        <td>${u.pontos}</td>
+        <td class="awakened">${u.despertou ? '✅' : '❌'}</td>
+        <td>
+          <button class="btn btn-danger" onclick="confirmarApagar('${encodeURIComponent(u.nome)}')">🗑️ Apagar</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filtrar() {
+    const q = document.getElementById('search').value.toLowerCase();
+    renderTabela(todosUsuarios.filter(u => u.nome.toLowerCase().includes(q)));
+  }
+
+  async function carregarUsuarios() {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = `<tr><td colspan="7"><div class="loading"><div class="spinner"></div><p>A carregar jogadores...</p></div></td></tr>`;
+
+    try {
+       const res = await fetch('/api/usuarios');
+       const usuarios = await res.json();
+
+      todosUsuarios = usuarios;
+
+      //Stats
+      document.getElementById('stat-total').textContent = usuarios.length;
+      document.getElementById('stat-awake').textContent = usuarios.filter(u => u.despertou).length;
+      const totalXp = usuarios.reduce((a, u) => a + u.xp, 0);
+      document.getElementById('stat-xp').textContent = totalXp >= 1000 ? (totalXp/1000).toFixed(1)+'K' : totalXp;
+
+      renderTabela(usuarios);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">❌</div><p>Erro ao carregar dados. Verifica a conexão.</p></div></td></tr>`;
+    }
+  }
+
+  function confirmarApagar(nome) {
+    const dec = decodeURIComponent(nome);
+    abrirModal('🗑️', 'Apagar jogador', `Tens a certeza que queres apagar permanentemente "${dec}"? Esta ação não pode ser desfeita.`, async () => {
+      await fetch(`/api/usuarios/${nome}`, { method: 'DELETE' });
+      mostrarToast(`✅ ${dec} foi removido do universo.`);
+      carregarUsuarios();
+    });
+  }
+
+  function confirmarReset() {
+    abrirModal('💥', 'Resetar todos os dados', 'ATENÇÃO: Esta ação apagará TODOS os dados do jogo. A sessão do WhatsApp NÃO será perdida. Continuar?', async () => {
+      const res = await fetch('/api/reset', { method: 'POST' });
+      const data = await res.json();
+      mostrarToast('🔄 ' + data.message);
+      carregarUsuarios();
+    });
+  }
+
+  carregarUsuarios();
+</script>
+</body>
+</html>

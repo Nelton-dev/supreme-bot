@@ -1,4 +1,13 @@
 const { getUser, saveUser } = require('../db')
+const ARENAS = [
+  { nome: 'Arena do Fogo Eterno', emoji: '🔥', elementoBonus: 'fogo', desc: 'O chão queima sob os pés dos combatentes.' },
+  { nome: 'Lago Congelado', emoji: '💧', elementoBonus: 'agua', desc: 'O gelo range a cada passo.' },
+  { nome: 'Floresta Ancestral', emoji: '🌿', elementoBonus: 'natureza', desc: 'Vinhas e raízes protegem os dignos.' },
+  { nome: 'Tempestade Celestial', emoji: '⚡', elementoBonus: 'trovão', desc: 'Raios caem aleatoriamente na arena.' },
+  { nome: 'Caverna de Cristal', emoji: '🪨', elementoBonus: 'terra', desc: 'Paredes de cristal refletem o poder.' },
+  { nome: 'Abismo Sombrio', emoji: '🌑', elementoBonus: 'trevas', desc: 'A escuridão consome a luz.' },
+  { nome: 'Templo Sagrado', emoji: '✨', elementoBonus: 'luz', desc: 'A luz divina ilumina os guerreiros.' }
+]
 const { ITENS } = require('./loja')
 const { enviarVitoriaTorneio, enviarBannerTorneio } = require('./imagens')
 const fs = require('fs')
@@ -118,6 +127,10 @@ async function iniciarFase(sock, jid) {
   state.torneio.vencedores = []
   state.torneio.confrontoAtual = 0
 
+const arena = ARENAS[Math.floor(Math.random() * ARENAS.length)]
+state.torneio.arena = arena
+
+bracket = '🏟️ *' + arena.nome + '* ' + arena.emoji + '\n' + arena.desc + '\n\n' + bracket
   let bracket = `⚔️ *TORNEIO COMEÇOU!*\n📊 *BRACKET — RODADA ${state.torneio.rodada}*\n\n`
   state.torneio.confrontos.forEach((c, i) => {
     if (c.bye) bracket += `🟡 ${c.j1} — avança automaticamente\n`
@@ -198,7 +211,7 @@ async function atacarTorneio(sock, jid, nome) {
 
   if (nome !== b.j1 && nome !== b.j2) return false
   if (b.turno !== nome) {
-    await sock.sendMessage(jid, { text: `⏳ Não é o teu turno, *${nome}*! Aguarda *${b.turno}*!` })
+    await sock.sendMessage(jid, { text: '⏳ Não é o teu turno, *' + nome + '*! Aguarda *' + b.turno + '*!' })
     return true
   }
 
@@ -214,45 +227,75 @@ async function atacarTorneio(sock, jid, nome) {
   let dano = Math.floor(atkBase * (0.8 + Math.random() * 0.6))
   let efeitos = []
 
+  // Bónus da arena
+  const user = getUser(nome)
+  const arena = state.torneio.arena
+  if (arena && user.elemento === arena.elementoBonus) {
+    dano = Math.floor(dano * 1.3)
+    efeitos.push(arena.emoji + ' Bónus da arena *' + arena.nome + '*!')
+  }
+
+  // Habilidades clássicas
   if (hab === 'rasengan' && Math.random() < 0.25) { dano *= 2; efeitos.push('💥 CRÍTICO com Rasengan!') }
   if (hab === 'bankai') { dano = Math.floor(dano * 1.5); efeitos.push('🌑 Bankai ativado!') }
-  if (hab === 'kamehameha' && Math.random() < 0.15) { efeitos.push(`⚡ *KNOCKDOWN! ${oponente} perde o próximo turno!*`) }
+  if (hab === 'kamehameha' && Math.random() < 0.15) { efeitos.push('⚡ *KNOCKDOWN! ' + oponente + ' perde o próximo turno!*') }
   if (hab === 'modo_seis') { dano = Math.floor(dano * 2); efeitos.push('🔱 Modo Seis Caminhos!') }
 
-  if (habOp === 'sharingan' && Math.random() < 0.20) { dano = 0; efeitos.push(`👁️ *${oponente} esquivou com Sharingan!*`) }
-  if (habOp === 'haki') { dano = Math.floor(dano * 0.7); efeitos.push(`⚫ *Haki de ${oponente} reduziu o dano!*`) }
+  // NOVOS PODERES DO NEXUS - ATAQUE
+  if (hab === 'onda_espiritual' && Math.random() < 0.30) { dano = Math.floor(dano * 1.4); efeitos.push('🌊 Onda Espiritual! Dano em área!') }
+  if (hab === 'golpe_do_vazio' && Math.random() < 0.20) { dano = Math.floor(dano * 1.5); efeitos.push('🕳️ Golpe do Vazio! Defesa ignorada!') }
+  if (hab === 'lamina_nexus') { dano = Math.floor(dano * 1.4); if (Math.random() < 0.10) efeitos.push('⚔️ Lâmina do Nexus! Sangramento!') }
+  if (hab === 'colera_dos_pilares' && Math.random() < 0.15) { dano = Math.floor(dano * 2); efeitos.push('🔥 Cólera dos Pilares! Ataque duplo!') }
+  if (hab === 'rugido_do_dragao') { dano = Math.floor(dano * 1.5); if (Math.random() < 0.25) efeitos.push('🐉 Rugido do Dragão! Inimigo atordoado!') }
+
+  // NOVOS PODERES DO NEXUS - ESPECIAIS
+  if (hab === 'visao_do_vazio' && Math.random() < 0.30) { dano = Math.floor(dano * 1.25); efeitos.push('👁️ Visão do Vazio! Fraqueza revelada!') }
+  if (hab === 'furor_do_nexus') { dano = Math.floor(dano * 2); efeitos.push('⚡ Furor do Nexus! Ataque devastador!') }
+
+  // Habilidades do defensor (clássicas)
+  if (habOp === 'sharingan' && Math.random() < 0.20) { dano = 0; efeitos.push('👁️ *' + oponente + ' esquivou com Sharingan!*') }
+  if (habOp === 'haki') { dano = Math.floor(dano * 0.7); efeitos.push('⚫ *Haki de ' + oponente + ' reduziu o dano!*') }
+
+  // NOVOS PODERES DO NEXUS - DEFESA (para o defensor)
+  if (habOp === 'manto_espiritual' && Math.random() < 0.40) { dano = Math.floor(dano * 0.6); efeitos.push('🌀 *' + oponente + ' usou Manto Espiritual!*') }
+  if (habOp === 'barreira_do_vazio' && Math.random() < 0.30) { dano = 0; efeitos.push('🌑 *' + oponente + ' anulou o ataque com Barreira do Vazio!*') }
+  if (habOp === 'escudo_dos_pilares') { dano = Math.floor(dano * 0.75); efeitos.push('🛡️ *' + oponente + ' refletiu dano com Escudo dos Pilares!*') }
+  if (habOp === 'danca_das_sombras' && Math.random() < 0.40) { dano = 0; efeitos.push('🌑 *' + oponente + ' esquivou com Dança das Sombras!*') }
 
   if (escudoOp) {
     dano = 0
     if (ehJ1) b.escudo2 = false; else b.escudo1 = false
-    efeitos.push(`🛡️ *${oponente} bloqueou com escudo!*`)
+    efeitos.push('🛡️ *' + oponente + ' bloqueou com escudo!*')
   }
 
   if ((ehJ1 ? b.pet1 : b.pet2) === 'kurama') {
     const regen = 10
     if (ehJ1) b.vida1 = Math.min(b.vida1 + regen, 150)
     else b.vida2 = Math.min(b.vida2 + regen, 150)
-    efeitos.push(`🦊 *Kurama regenerou ${regen} HP!*`)
+    efeitos.push('🦊 *Kurama regenerou ' + regen + ' HP!*')
   }
 
   if (ehJ1) b.vida2 = Math.max(0, b.vida2 - dano)
   else b.vida1 = Math.max(0, b.vida1 - dano)
 
   const vidaOponente = ehJ1 ? b.vida2 : b.vida1
-  const habilidades = {
-    sharingan: '👁️ Sharingan', rasengan: '🌀 Rasengan',
-    haki: '⚫ Haki', bankai: '🌑 Bankai',
-    kamehameha: '💥 Kamehameha', modo_seis: '🔱 Seis Caminhos'
+  const habilidadesNome = {
+    sharingan: '👁️ Sharingan', rasengan: '🌀 Rasengan', haki: '⚫ Haki', bankai: '🌑 Bankai',
+    kamehameha: '💥 Kamehameha', modo_seis: '🔱 Seis Caminhos',
+    onda_espiritual: '🌊 Onda Espiritual', golpe_do_vazio: '🕳️ Golpe do Vazio',
+    lamina_nexus: '⚔️ Lâmina do Nexus', colera_dos_pilares: '🔥 Cólera dos Pilares',
+    rugido_do_dragao: '🐉 Rugido do Dragão', visao_do_vazio: '👁️ Visão do Vazio',
+    furor_do_nexus: '⚡ Furor do Nexus', toque_do_criador: '🖐️ Toque do Criador'
   }
-  const habNome = habilidades[hab] || 'Ataque normal'
+  const habNome = habilidadesNome[hab] || 'Ataque normal'
 
-  let txt = `⚔️ *${nome}* usou *${habNome}*!\n💢 ${dano} de dano em *${oponente}*!\n\n`
+  let txt = '⚔️ *' + nome + '* usou *' + habNome + '*!\n💢 ' + dano + ' de dano em *' + oponente + '*!\n\n'
   if (efeitos.length > 0) txt += efeitos.join('\n') + '\n\n'
-  txt += `❤️ ${b.j1}: ${b.vida1} HP\n❤️ ${b.j2}: ${b.vida2} HP\n\n`
+  txt += '❤️ ' + b.j1 + ': ' + b.vida1 + ' HP\n❤️ ' + b.j2 + ': ' + b.vida2 + ' HP\n\n'
 
   if (vidaOponente <= 0) {
     clearTimeout(b.timeout)
-    txt += `💀 *${oponente}* foi derrotado!\n🏅 *${nome}* venceu a batalha!`
+    txt += '💀 *' + oponente + '* foi derrotado!\n🏅 *' + nome + '* venceu a batalha!'
     await sock.sendMessage(jid, { text: txt })
 
     const user = getUser(nome)
@@ -269,12 +312,11 @@ async function atacarTorneio(sock, jid, nome) {
   }
 
   b.turno = oponente
-  txt += `🎮 Turno de *${oponente}* — usa *!atacar*!`
+  txt += '🎮 Turno de *' + oponente + '* — usa *!atacar*!'
   await sock.sendMessage(jid, { text: txt })
   reiniciarTimeout(sock, jid)
   return true
 }
-
 // ════════════════════════════════════════
 //  VERIFICAR FIM DA RODADA
 // ════════════════════════════════════════
@@ -367,7 +409,7 @@ async function torneioClans(sock, jid) {
   for (const clan of participantes) {
     state.torneio.claDosInscritos[clan.representante] = clan.nome
   }
-
+q
   await sock.sendMessage(jid, {
     text: `⚔️ *TORNEIO DE CLÃS INICIADO!*\n\nRepresentantes:\n${participantes.map(c => `${c.emblema} ${c.nome}: *${c.representante}*`).join('\n')}\n\n🎮 As batalhas começam em breve!`
   })

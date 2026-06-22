@@ -4,8 +4,16 @@ const { getUser, saveUser } = require('../db')
 const SOCIAL_PATH = './data/social.json'
 
 function carregarSocial() {
-  if (!fs.existsSync(SOCIAL_PATH)) fs.writeFileSync(SOCIAL_PATH, JSON.stringify({ clans: {}, casamentos: {}, missoes: {} }, null, 2))
-  return JSON.parse(fs.readFileSync(SOCIAL_PATH))
+  if (!fs.existsSync(SOCIAL_PATH)) {
+    const base = { clans: {}, casamentos: {}, missoes: {} }
+    fs.writeFileSync(SOCIAL_PATH, JSON.stringify(base, null, 2))
+    return base
+  }
+  const data = JSON.parse(fs.readFileSync(SOCIAL_PATH))
+  if (!data.clans) data.clans = {}
+  if (!data.casamentos) data.casamentos = {}
+  if (!data.missoes) data.missoes = {}
+  return data
 }
 
 function salvarSocial(data) {
@@ -22,7 +30,6 @@ async function criarCla(sock, jid, nome, nomeCla) {
   const social = carregarSocial()
   const user = getUser(nome)
 
-  // Verifica se já está em clã
   const claAtual = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
   if (claAtual) {
     await sock.sendMessage(jid, { text: `⚠️ *${nome}*, já pertences ao clã *${claAtual[1].nome}*!\nSai primeiro com *!sair-cla*` })
@@ -105,7 +112,6 @@ async function sairCla(sock, jid, nome) {
     await sock.sendMessage(jid, { text: `🏚️ Clã *${nomeCla}* dissolvido por falta de membros.` })
   } else {
     if (cla.lider === nome) cla.lider = cla.membros[0]
-    salvarSocial(social)
     await sock.sendMessage(jid, { text: `👋 *${nome}* saiu do clã *${nomeCla}*.` })
   }
 
@@ -150,7 +156,6 @@ async function verCla(sock, jid, nomeCla) {
 async function elegerRepresentante(sock, jid, nome, alvo) {
   const social = carregarSocial()
 
-  // Descobre o clã a que o remetente pertence
   const entrada = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
   if (!entrada) {
     await sock.sendMessage(jid, { text: '❌ Não pertences a nenhum clã!' })
@@ -159,13 +164,11 @@ async function elegerRepresentante(sock, jid, nome, alvo) {
 
   const [clanId, clan] = entrada
 
-  // Verifica se o alvo está no mesmo clã
   if (!clan.membros.includes(alvo)) {
     await sock.sendMessage(jid, { text: '❌ Esse membro não está no teu clã!' })
     return
   }
 
-  // Define o representante
   clan.representante = alvo
   salvarSocial(social)
 
@@ -213,7 +216,6 @@ async function aceitarCasamento(sock, jid, nome) {
   social.casamentos[nomeProp] = nome
   salvarSocial(social)
 
-  // Bónus de XP para os dois
   const u1 = getUser(nome)
   const u2 = getUser(nomeProp)
   u1.xp += 30; u2.xp += 30
@@ -295,7 +297,8 @@ async function verMissoes(sock, jid, nome) {
 
   let txt = `📋 *MISSÕES DE ${nome.toUpperCase()}*\n\n`
   MISSOES.forEach(m => {
-    const prog = social.missoes[nome][m.id]
+    const prog = social.missoes[nome]?.[m.id]
+    if (!prog) return
     const status = prog.completa ? '✅' : `${prog.progresso}/${m.meta}`
     txt += `${prog.completa ? '✅' : '🔄'} *${m.nome}*\n   ${m.desc}\n   Progresso: ${status} | +${m.xp} XP | +${m.pontos} pts\n\n`
   })
@@ -305,34 +308,36 @@ async function verMissoes(sock, jid, nome) {
 
 function atualizarMissao(nome, tipo) {
   const social = carregarSocial()
-  if (!social.missoes[nome]) getMissoesUsuario(nome)
+
+  // Garante que o objeto de missões do utilizador existe
+  if (!social.missoes[nome]) {
+    getMissoesUsuario(nome)
+    // Recarrega o social após a inicialização
+    const socialAtualizado = carregarSocial()
+    if (!socialAtualizado.missoes[nome]) return null
+    social.missoes[nome] = socialAtualizado.missoes[nome]
+  }
+
+  let notificacao = null
 
   MISSOES.filter(m => m.tipo === tipo).forEach(m => {
     const prog = social.missoes[nome][m.id]
-    if (prog.completa) return
+    if (!prog || prog.completa) return
+
     prog.progresso++
     if (prog.progresso >= m.meta) {
       prog.completa = true
-      // Dar recompensa
       const user = getUser(nome)
       user.xp += m.xp
       user.pontos += m.pontos
       saveUser(nome, user)
-      // Notificar (retorna info para o handler enviar)
-      social._notificacao = { nome, missao: m }
+      notificacao = { nome, missao: m }
     }
   })
 
   salvarSocial(social)
 
-  // Retorna notificação se houver
-  const notif = social._notificacao
-  if (notif) {
-    delete social._notificacao
-    salvarSocial(social)
-    return notif
-  }
-  return null
+  return notificacao
 }
 
 module.exports = {
@@ -348,5 +353,5 @@ module.exports = {
   verCasal,
   verMissoes,
   atualizarMissao,
-  elegerRepresentante   // <-- NOVA
+  elegerRepresentante
 }

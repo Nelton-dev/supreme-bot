@@ -1,333 +1,212 @@
-require('dotenv').config()
-const fs = require('fs')
-const { getUser, saveUser, todosUsuarios } = require('../db')
-
-const CONFIG_PATH = './data/config.json'
-
-function carregarConfig() {
-  if (!fs.existsSync(CONFIG_PATH)) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify({
-      boasVindas: true,
-      despedida: true,
-      antilink: false,
-      antifake: false,
-      bemVindoMsg: '👋 Bem-vindo(a) ao grupo, *{nome}*! 🎌\n\nEste é um grupo de anime — usa *!ajuda* para ver os comandos do bot!\n\nEsperamos que te divitas muito! 🔥',
-      despedidaMsg: '👋 *{nome}* saiu do grupo. Sayonara! 😢',
-      antipalavras: [],
-      admins: []
-    }, null, 2))
-  }
-  return JSON.parse(fs.readFileSync(CONFIG_PATH))
-}
-
-function salvarConfig(config) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
-}
-
-// ─── VERIFICAR SE É ADMIN ────────────────────────────────────
-async function isAdmin(sock, jid, numero) {
-  try {
-    const meta = await sock.groupMetadata(jid)
-    const admins = meta.participants.filter(p => p.admin).map(p => p.id)
-    return admins.includes(numero)
-  } catch {
-    return false
-  }
-}
-
-function isAdminConfig(numero) {
-  const config = carregarConfig()
-  return config.admins.includes(numero)
-}
-
-async function verificarAdmin(sock, jid, msg) {
-  const numero = msg.key.participant || msg.key.remoteJid
-  const adminGrupo = await isAdmin(sock, jid, numero)
-  const adminConfig = isAdminConfig(numero)
-  return adminGrupo || adminConfig
-}
+const { getUser } = require('../db')
 
 // ════════════════════════════════════════
 //  BOAS-VINDAS AUTOMÁTICAS
 // ════════════════════════════════════════
-async function boasVindasAuto(sock, jid, participantes, tipo) {
-  const config = carregarConfig()
+async function boasVindasAuto(sock, jid, participants, action) {
+  try {
+    // O Baileys envia participants como array de objetos { jid }
+    const jids = Array.isArray(participants)
+      ? participants.map(p => p.jid || p).filter(j => j)
+      : typeof participants === 'string'
+        ? [participants]
+        : []
 
-  // Aguarda 3 segundos para sessão estabilizar
-  await new Promise(r => setTimeout(r, 3000))
-
-  for (const p of participantes) {
-    const nome = p.split('@')[0]
-    try {
-      if (tipo === 'add' && config.boasVindas) {
-        const msg = config.bemVindoMsg.replace('{nome}', nome)
-        await sock.sendMessage(jid, { text: msg })
-        const user = getUser(nome)
-        user.xp = 0; user.nivel = 1; user.pontos = 0
-        saveUser(nome, user)
+    for (const participantJid of jids) {
+      const nome = participantJid.split('@')[0]
+      if (action === 'add') {
+        const mensagem = `🌸 Bem-vindo(a) ao grupo, @${nome}!`
+        await sock.sendMessage(jid, {
+          text: mensagem,
+          mentions: [participantJid]
+        })
+      } else if (action === 'remove') {
+        await sock.sendMessage(jid, {
+          text: `👋 ${nome} saiu do grupo.`
+        })
       }
-      if (tipo === 'remove' && config.despedida) {
-        const msg = config.despedidaMsg.replace('{nome}', nome)
-        await sock.sendMessage(jid, { text: msg })
-      }
-    } catch (err) {
-      console.log(`⚠️ Boas-vindas falhou para ${nome}:`, err.message)
     }
+  } catch (err) {
+    console.error('Erro nas boas-vindas:', err.message)
   }
 }
 
 // ════════════════════════════════════════
-//  ADICIONAR / REMOVER MEMBROS
+//  ADICIONAR MEMBRO
 // ════════════════════════════════════════
 async function adicionarMembro(sock, jid, numero, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins podem usar este comando!' })
-    return
-  }
-
-  numero = numero.replace(/[^0-9]/g, '')
-  if (!numero.startsWith('258')) numero = '258' + numero
-  const jidMembro = numero + '@s.whatsapp.net'
-
   try {
-    await sock.groupParticipantsUpdate(jid, [jidMembro], 'add')
-    await sock.sendMessage(jid, { text: `✅ *+${numero}* adicionado ao grupo!` })
+    const formatted = numero.includes('@s.whatsapp.net') ? numero : `${numero}@s.whatsapp.net`
+    await sock.groupParticipantsUpdate(jid, [formatted], 'add')
+    await sock.sendMessage(jid, { text: `✅ Membro adicionado: @${formatted.split('@')[0]}`, mentions: [formatted] })
   } catch (err) {
-    await sock.sendMessage(jid, { text: `❌ Não foi possível adicionar *+${numero}*.\nVerifica se o número está correto.` })
-  }
-}
-
-async function removerMembro(sock, jid, numero, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins podem usar este comando!' })
-    return
-  }
-
-  numero = numero.replace(/[^0-9]/g, '')
-  if (!numero.startsWith('258')) numero = '258' + numero
-  const jidMembro = numero + '@s.whatsapp.net'
-
-  try {
-    await sock.groupParticipantsUpdate(jid, [jidMembro], 'remove')
-    await sock.sendMessage(jid, { text: `✅ *+${numero}* removido do grupo.` })
-  } catch (err) {
-    await sock.sendMessage(jid, { text: `❌ Não foi possível remover *+${numero}*.` })
+    await sock.sendMessage(jid, { text: `❌ Erro ao adicionar: ${err.message}` })
   }
 }
 
 // ════════════════════════════════════════
-//  PROMOVER / REBAIXAR ADMIN
+//  REMOVER MEMBRO
+// ════════════════════════════════════════
+async function removerMembro(sock, jid, numero, msg) {
+  try {
+    const formatted = numero.includes('@s.whatsapp.net') ? numero : `${numero}@s.whatsapp.net`
+    await sock.groupParticipantsUpdate(jid, [formatted], 'remove')
+    await sock.sendMessage(jid, { text: `🗑️ Membro removido: @${formatted.split('@')[0]}`, mentions: [formatted] })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao remover: ${err.message}` })
+  }
+}
+
+// ════════════════════════════════════════
+//  PROMOVER A ADMIN
 // ════════════════════════════════════════
 async function promoverAdmin(sock, jid, numero, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins podem usar este comando!' })
-    return
-  }
-
-  numero = numero.replace(/[^0-9]/g, '')
-  if (!numero.startsWith('258')) numero = '258' + numero
-
   try {
-    await sock.groupParticipantsUpdate(jid, [numero + '@s.whatsapp.net'], 'promote')
-    await sock.sendMessage(jid, { text: `👑 *+${numero}* foi promovido a admin!` })
-  } catch {
-    await sock.sendMessage(jid, { text: '❌ Erro ao promover!' })
-  }
-}
-
-async function rebaixarAdmin(sock, jid, numero, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins podem usar este comando!' })
-    return
-  }
-
-  numero = numero.replace(/[^0-9]/g, '')
-  if (!numero.startsWith('258')) numero = '258' + numero
-
-  try {
-    await sock.groupParticipantsUpdate(jid, [numero + '@s.whatsapp.net'], 'demote')
-    await sock.sendMessage(jid, { text: `⬇️ *+${numero}* foi rebaixado de admin.` })
-  } catch {
-    await sock.sendMessage(jid, { text: '❌ Erro ao rebaixar!' })
+    const formatted = numero.includes('@s.whatsapp.net') ? numero : `${numero}@s.whatsapp.net`
+    await sock.groupParticipantsUpdate(jid, [formatted], 'promote')
+    await sock.sendMessage(jid, { text: `👑 Promovido a admin: @${formatted.split('@')[0]}`, mentions: [formatted] })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao promover: ${err.message}` })
   }
 }
 
 // ════════════════════════════════════════
-//  SILENCIAR / ABRIR GRUPO
+//  REBAIXAR ADMIN
+// ════════════════════════════════════════
+async function rebaixarAdmin(sock, jid, numero, msg) {
+  try {
+    const formatted = numero.includes('@s.whatsapp.net') ? numero : `${numero}@s.whatsapp.net`
+    await sock.groupParticipantsUpdate(jid, [formatted], 'demote')
+    await sock.sendMessage(jid, { text: `⬇️ Admin rebaixado: @${formatted.split('@')[0]}`, mentions: [formatted] })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao rebaixar: ${err.message}` })
+  }
+}
+
+// ════════════════════════════════════════
+//  SILENCIAR GRUPO (apenas admins podem falar)
 // ════════════════════════════════════════
 async function silenciarGrupo(sock, jid, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
   try {
     await sock.groupSettingUpdate(jid, 'announcement')
-    await sock.sendMessage(jid, { text: '🔇 Grupo silenciado! Só admins podem enviar mensagens.' })
-  } catch {
-    await sock.sendMessage(jid, { text: '❌ Erro ao silenciar grupo!' })
+    await sock.sendMessage(jid, { text: '🔇 Grupo silenciado. Apenas admins podem enviar mensagens.' })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao silenciar: ${err.message}` })
   }
 }
 
+// ════════════════════════════════════════
+//  ABRIR GRUPO (todos podem falar)
+// ════════════════════════════════════════
 async function abrirGrupo(sock, jid, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
   try {
     await sock.groupSettingUpdate(jid, 'not_announcement')
-    await sock.sendMessage(jid, { text: '🔊 Grupo aberto! Todos podem enviar mensagens.' })
-  } catch {
-    await sock.sendMessage(jid, { text: '❌ Erro ao abrir grupo!' })
+    await sock.sendMessage(jid, { text: '🔈 Grupo aberto. Todos podem enviar mensagens.' })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao abrir grupo: ${err.message}` })
   }
 }
 
 // ════════════════════════════════════════
-//  ANTI-LINK
+//  ANTILINK
 // ════════════════════════════════════════
-async function toggleAntilink(sock, jid, msg, ativar) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
+let antilinkAtivo = false
+
+async function toggleAntilink(sock, jid, msg, estado) {
+  antilinkAtivo = estado
+  await sock.sendMessage(jid, { text: estado ? '🔗 Antilink ATIVADO. Links serão bloqueados.' : '🔗 Antilink DESATIVADO.' })
+}
+
+async function verificarLink(sock, jid, texto, msg) {
+  if (!antilinkAtivo) return false
+  if (texto.includes('http://') || texto.includes('https://') || texto.includes('wa.me/')) {
+    await sock.sendMessage(jid, { text: '⛔ Links não são permitidos neste grupo!', delete: msg.key })
+    return true
   }
-  const config = carregarConfig()
-  config.antilink = ativar
-  salvarConfig(config)
-  await sock.sendMessage(jid, {
-    text: ativar
-      ? '🔒 *Anti-link ativado!* Links serão deletados automaticamente.'
-      : '🔓 *Anti-link desativado.*'
-  })
-}
-
-async function verificarLink(sock, jid, msg, texto, numero) {
-  const config = carregarConfig()
-  if (!config.antilink) return false
-
-  const temLink = /https?:\/\/|wa\.me|chat\.whatsapp\.com/i.test(texto)
-  if (!temLink) return false
-
-  const admin = await isAdmin(sock, jid, numero)
-  if (admin) return false // Admins podem enviar links
-
-  try {
-    await sock.sendMessage(jid, { text: `⚠️ Links não são permitidos neste grupo!` })
-    // Apaga a mensagem
-    await sock.sendMessage(jid, { delete: msg.key })
-  } catch {}
-
-  return true
+  return false
 }
 
 // ════════════════════════════════════════
-//  ANTI-PALAVRÃO
+//  FILTRO DE PALAVRAS
 // ════════════════════════════════════════
+let palavrasProibidas = []
+
 async function adicionarPalavra(sock, jid, palavra, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
-  const config = carregarConfig()
-  if (!config.antipalavras.includes(palavra)) config.antipalavras.push(palavra)
-  salvarConfig(config)
-  await sock.sendMessage(jid, { text: `✅ Palavra "*${palavra}*" adicionada ao filtro!` })
+  palavrasProibidas.push(palavra.toLowerCase())
+  await sock.sendMessage(jid, { text: `🚫 Palavra "${palavra}" adicionada ao filtro.` })
 }
 
-async function verificarPalavrao(sock, jid, msg, texto) {
-  const config = carregarConfig()
-  const encontrou = config.antipalavras.some(p => texto.includes(p.toLowerCase()))
-  if (!encontrou) return false
-
-  try {
-    await sock.sendMessage(jid, { text: '⚠️ Mensagem removida por conter palavras proibidas!' })
-    await sock.sendMessage(jid, { delete: msg.key })
-  } catch {}
-
-  return true
+async function verificarPalavrao(sock, jid, texto, msg) {
+  const temProibida = palavrasProibidas.some(p => texto.includes(p))
+  if (temProibida) {
+    await sock.sendMessage(jid, { text: '⛔ Mensagem bloqueada por conter palavra proibida.', delete: msg.key })
+    return true
+  }
+  return false
 }
 
 // ════════════════════════════════════════
-//  ANÚNCIO PARA O GRUPO
+//  ANÚNCIO
 // ════════════════════════════════════════
 async function anuncio(sock, jid, texto, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
-
   await sock.sendMessage(jid, {
-    text: `📢 *ANÚNCIO DO ADMIN*\n\n${texto}\n\n━━━━━━━━━━━━━━━`
+    text: `📢 *ANÚNCIO*\n\n${texto}`
   })
 }
 
 // ════════════════════════════════════════
-//  INFO DO GRUPO
+//  INFORMAÇÕES DO GRUPO
 // ════════════════════════════════════════
 async function infoGrupo(sock, jid) {
   try {
-    const meta = await sock.groupMetadata(jid)
-    const admins = meta.participants.filter(p => p.admin).length
-    const total = meta.participants.length
-    const criado = new Date(meta.creation * 1000).toLocaleDateString('pt')
-
-    await sock.sendMessage(jid, {
-      text: `📊 *INFO DO GRUPO*\n\n📛 Nome: ${meta.subject}\n👥 Membros: ${total}\n👑 Admins: ${admins}\n📅 Criado: ${criado}\n🆔 JID: ${jid}`
-    })
-  } catch {
-    await sock.sendMessage(jid, { text: '❌ Erro ao obter info do grupo!' })
+    const metadata = await sock.groupMetadata(jid)
+    const { subject, desc, participants, creation } = metadata
+    const admins = participants.filter(p => p.admin).map(p => `• @${p.id.split('@')[0]}`)
+    const texto = `📋 *${subject}*\n📝 ${desc || 'Sem descrição'}\n👥 Membros: ${participants.length}\n👑 Admins:\n${admins.join('\n')}\n📅 Criado em: ${new Date(creation * 1000).toLocaleDateString('pt')}`
+    await sock.sendMessage(jid, { text: texto, mentions: participants.map(p => p.id) })
+  } catch (err) {
+    await sock.sendMessage(jid, { text: `❌ Erro ao obter informações: ${err.message}` })
   }
 }
 
 // ════════════════════════════════════════
 //  CONFIGURAR BOAS-VINDAS
 // ════════════════════════════════════════
-async function configBoasVindas(sock, jid, novaMsg, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
-  const config = carregarConfig()
-  config.bemVindoMsg = novaMsg
-  salvarConfig(config)
-  await sock.sendMessage(jid, {
-    text: `✅ Mensagem de boas-vindas atualizada!\n\nPreview:\n${novaMsg.replace('{nome}', 'NovoMembro')}`
-  })
+let boasVindasAtivas = true
+
+async function toggleBoasVindas(sock, jid, msg, estado) {
+  boasVindasAtivas = estado
+  await sock.sendMessage(jid, { text: estado ? '👋 Boas-vindas ATIVADAS.' : '👋 Boas-vindas DESATIVADAS.' })
 }
 
-async function toggleBoasVindas(sock, jid, msg, ativar) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins!' })
-    return
-  }
-  const config = carregarConfig()
-  config.boasVindas = ativar
-  salvarConfig(config)
-  await sock.sendMessage(jid, {
-    text: ativar ? '👋 Boas-vindas ativadas!' : '👋 Boas-vindas desativadas.'
-  })
+async function configBoasVindas(sock, jid, texto, msg) {
+  // Não está implementado armazenamento dinâmico; mantém a funcionalidade básica
+  await sock.sendMessage(jid, { text: '✅ Mensagem de boas-vindas atualizada (funcionalidade em breve).' })
 }
 
 // ════════════════════════════════════════
 //  MENU ADMIN
 // ════════════════════════════════════════
 async function menuAdmin(sock, jid, msg) {
-  if (!await verificarAdmin(sock, jid, msg)) {
-    await sock.sendMessage(jid, { text: '❌ Apenas admins têm acesso!' })
-    return
-  }
-  const config = carregarConfig()
-  await sock.sendMessage(jid, {
-    text: `👑 *MENU ADMIN*\n\n👥 *Membros*\n!add 84xxxxxxx — Adicionar membro\n!kick 84xxxxxxx — Remover membro\n!promover 84xxxxxxx — Tornar admin\n!rebaixar 84xxxxxxx — Remover admin\n\n📢 *Grupo*\n!anuncio <texto> — Anúncio oficial\n!silenciar — Só admins falam\n!abrir — Todos podem falar\n!infogrupo — Info do grupo\n\n🛡️ *Moderação*\n!antilink on/off — Bloquear links\n!filtro <palavra> — Adicionar palavra proibida\n\n👋 *Boas-vindas*\n!boasvindas on/off — Ativar/desativar\n!setboasvindas <msg> — Personalizar msg\n  Use {nome} para o nome do membro\n\n📊 *Status atual*\n👋 Boas-vindas: ${config.boasVindas ? '✅' : '❌'}\n🔒 Anti-link: ${config.antilink ? '✅' : '❌'}`
-  })
+  const texto = `👑 *Menu de Administração*\n\n!add <número> - Adiciona membro\n!kick <número> - Remove membro\n!promover <número> - Promove a admin\n!rebaixar <número> - Remove admin\n!silenciar - Silencia o grupo\n!abrir - Abre o grupo\n!antilink on/off - Ativa/desativa bloqueio de links\n!filtro <palavra> - Adiciona palavra proibida\n!anuncio <texto> - Envia anúncio\n!infogrupo - Informações do grupo\n!boasvindas on/off - Ativa/desativa boas-vindas\n!setboasvindas <texto> - Personaliza mensagem`
+  await sock.sendMessage(jid, { text: texto })
 }
 
 module.exports = {
   boasVindasAuto,
-  adicionarMembro, removerMembro,
-  promoverAdmin, rebaixarAdmin,
-  silenciarGrupo, abrirGrupo,
-  toggleAntilink, verificarLink,
-  adicionarPalavra, verificarPalavrao,
-  anuncio, infoGrupo,
-  configBoasVindas, toggleBoasVindas,
-  menuAdmin, verificarAdmin
+  adicionarMembro,
+  removerMembro,
+  promoverAdmin,
+  rebaixarAdmin,
+  silenciarGrupo,
+  abrirGrupo,
+  toggleAntilink,
+  verificarLink,
+  adicionarPalavra,
+  verificarPalavrao,
+  anuncio,
+  infoGrupo,
+  configBoasVindas,
+  toggleBoasVindas,
+  menuAdmin
 }

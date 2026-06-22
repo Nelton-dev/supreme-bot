@@ -1,4 +1,4 @@
-const { getUser, saveUser, todosUsuarios } = require('./db')
+const { getUser, saveUser, todosUsuarios, adicionarXpRank, penalizarDerrota, comandoPermitido } = require('./db')
 const UI = require('./modules/ui')
 const {
   enviarCardPerfil,
@@ -8,7 +8,6 @@ const {
   enviarVitoriaTorneio,
   enviarLevelUp,
   enviarVitoriaBatalha,
-  buscarImagemAnime: buscarImagemPersonagem
 } = require('./modules/imagens')
 const { enviarHumano, digitando, delay } = require('./modules/humano')
 const { ajuda } = require('./modules/ajuda')
@@ -79,6 +78,18 @@ const {
   configBoasVindas, toggleBoasVindas,
   menuAdmin
 } = require('./modules/admin')
+const { verificarDespertar, processarRespostaDespertar, anunciarSubidaRank } = require('./modules/sistema')
+const { iniciarMasmorra, atacarMasmorra, defenderMasmorra, curarMasmorra, fugirMasmorra } = require('./modules/masmorra')
+const { verAfinidade } = require('./modules/combate')
+const { craftar, verReceitas } = require('./modules/crafting')
+const { verCodex } = require('./modules/codex')
+const { verMapa, viajar } = require('./modules/mapa')
+const { verHallFama } = require('./modules/hall_fama')
+const { criarGuilda, entrarGuilda, sairGuilda, verGuildas, verGuilda, adicionarXpGuilda } = require('./modules/guildas')
+const { inicializarMissoesJogador, verificarProgressoMissao, verMissoesEpicas, notificarMissaoCompleta } = require('./modules/missoes_epicas')
+const { iniciarGuerraGuildas, lutarGuerra, statusGuerra } = require('./modules/guerra_guildas')
+const { iniciarEventoGlobal, atacarEvento, statusEvento } = require('./modules/evento_global')
+const { inicializarConquistas, verificarConquistas, verConquistas, notificarConquista } = require('./modules/conquistas')
 
 let JID_GRUPO = null
 
@@ -101,31 +112,97 @@ module.exports = function iniciarHandler(sock) {
 
     const texto = raw.toLowerCase()
     const jid = msg.key.remoteJid
+    const sender = msg.key.participant || jid
     const nome = msg.pushName || 'Anônimo'
+
+    // Ignorar mensagens privadas
+    if (!jid.endsWith('@g.us')) return
 
     // Detectar grupo automaticamente
     if (!JID_GRUPO && jid.endsWith('@g.us')) {
       JID_GRUPO = jid
       agendarNotificacoes(sock, JID_GRUPO)
       agendarTorneioSemanal(sock, JID_GRUPO)
-      console.log(`📌 Grupo detectado: ${JID_GRUPO}`)
+      console.log('📌 Grupo detectado: ' + JID_GRUPO)
     }
 
+    // ─── SISTEMA (DESPERTAR) ─────────────────────────────────
+    const despertou = await verificarDespertar(sock, jid, nome, sender)
+    if (!despertou) {
+      const respondeu = await processarRespostaDespertar(sock, jid, nome, raw, sender)
+      if (!respondeu) return
+      return
+    }
+
+    // ─── MASMORRA DIÁRIA ────────────────────────────────────
+    if (texto === '!masmorra') return iniciarMasmorra(sock, jid, nome)
+    if (texto.startsWith('!masmorra ')) {
+      const { masmorras } = require('./modules/masmorra')
+      if (!masmorras || !masmorras[nome]) {
+        await sock.sendMessage(jid, { text: '⚠️ Você não está em uma masmorra ativa! Use *!masmorra* para iniciar.' })
+        return
+      }
+      const acao = texto.split(' ')[1]
+      if (acao === 'atacar') return atacarMasmorra(sock, jid, nome)
+      if (acao === 'defender') return defenderMasmorra(sock, jid, nome)
+      if (acao === 'curar') return curarMasmorra(sock, jid, nome)
+      if (acao === 'fugir') return fugirMasmorra(sock, jid, nome)
+      await sock.sendMessage(jid, { text: '❌ Ação inválida. Use: *!masmorra atacar*, *defender*, *curar*, *fugir*.' })
+      return
+    }
+
+    // ─── BLOQUEIO DE COMANDOS POR RANK ──────────────────────
+    const usuario = getUser(nome)
+    if (usuario.despertou) {
+      const comandosRestritos = {
+        '!batalha': 'batalha', '!criar-cla': 'criar-cla', '!entrar-cla': 'entrar-cla',
+        '!loja': 'loja', '!comprar': 'comprar', '!torneio': 'torneio', '!inscrever': 'inscrever',
+        '!apostar': 'apostar', '!atacar': 'atacar', '!voz': 'voz', '!frase': 'frase',
+        '!ia': 'ia', '!resumo': 'resumo', '!recomendar': 'recomendar', '!analisar': 'analisar',
+        '!img': 'img', '!musica': 'musica', '!torneio clans': 'torneio clans',
+        '!criar-guilda': 'criar-guilda', '!entrar-guilda': 'entrar-guilda'
+      }
+      for (const cmd in comandosRestritos) {
+        if (texto.startsWith(cmd)) {
+          if (!comandoPermitido(nome, comandosRestritos[cmd])) {
+            await sock.sendMessage(jid, { text: '🔒 Rank insuficiente! Continue a evoluir no Nexus World para desbloquear este comando.', mentions: [sender] })
+            return
+          }
+          break
+        }
+      }
+    }
+
+    // ─── COMANDOS GERAIS ────────────────────────────────────
     if (texto === '!jid') {
-      await sock.sendMessage(jid, { text: `📌 JID:\n${jid}` })
+      await sock.sendMessage(jid, { text: '📌 JID:\n' + jid })
       return
     }
 
     // ─── QUIZ ────────────────────────────────────────────────
     if (texto === '!quiz') return iniciarQuiz(sock, jid)
     if (await verificarResposta(sock, jid, texto, nome)) {
+      if (adicionarXpRank(nome, 5)) await anunciarSubidaRank(sock, jid, nome, sender, getUser(nome).rank)
+      adicionarXpGuilda(nome, 2)
       const notif = atualizarMissao(nome, 'quiz')
-      if (notif) await sock.sendMessage(jid, { text: `🎉 *MISSÃO COMPLETA!*\n${notif.missao.nome}\n+${notif.missao.xp} XP | +${notif.missao.pontos} pts` })
+      if (notif) await sock.sendMessage(jid, { text: '🎉 *MISSÃO COMPLETA!*\n' + notif.missao.nome + '\n+' + notif.missao.xp + ' XP | +' + notif.missao.pontos + ' pts' })
+      // Conquistas
+      const conquistasQuiz = verificarConquistas(nome, 'quiz_mestre', 1)
+      for (const c of conquistasQuiz) {
+        await notificarConquista(sock, jid, nome, c)
+      }
+      // Verificação geral
+      const conquistasGerais = verificarConquistas(nome, 'todas', 0)
+      for (const c of conquistasGerais) {
+        await notificarConquista(sock, jid, nome, c)
+      }
       return
     }
     if (await verificarAdivinhar(sock, jid, texto, nome)) {
+      if (adicionarXpRank(nome, 5)) await anunciarSubidaRank(sock, jid, nome, sender, getUser(nome).rank)
+      adicionarXpGuilda(nome, 2)
       const notif = atualizarMissao(nome, 'adivinhar')
-      if (notif) await sock.sendMessage(jid, { text: `🎉 *MISSÃO COMPLETA!*\n${notif.missao.nome}\n+${notif.missao.xp} XP | +${notif.missao.pontos} pts` })
+      if (notif) await sock.sendMessage(jid, { text: '🎉 *MISSÃO COMPLETA!*\n' + notif.missao.nome + '\n+' + notif.missao.xp + ' XP | +' + notif.missao.pontos + ' pts' })
       return
     }
 
@@ -136,7 +213,18 @@ module.exports = function iniciarHandler(sock) {
     if (texto.startsWith('!batalha ')) return desafiar(sock, jid, nome, raw.split(' ').slice(1).join(' '))
     if (texto === '!aceitar') return aceitar(sock, jid, nome)
     if (texto === '!recusar') return recusar(sock, jid, nome)
+   // ─── CRAFTING ────────────────────────────────────────────
+if (texto === '!receitas') return verReceitas(sock, jid)
+if (texto.startsWith('!craftar ')) return craftar(sock, jid, nome, texto.split(' ')[1])
+// ─── CODEX ───────────────────────────────────────────────
+if (texto === '!codex') return verCodex(sock, jid)
+if (texto.startsWith('!codex ')) return verCodex(sock, jid, texto.split(' ')[1])
 
+// ─── MAPA ────────────────────────────────────────────────
+if (texto === '!mapa') return verMapa(sock, jid, nome)
+if (texto.startsWith('!viajar ')) return viajar(sock, jid, nome, texto.split(' ')[1])
+// ─── HALL DA FAMA ───────────────────────────────────────
+if (texto === '!hall') return verHallFama(sock, jid)
     // ─── TORNEIO (interativo + comandos gerais) ──────────────
     if (texto === '!torneio') return iniciarTorneio(sock, jid)
     if (texto === '!inscrever') return inscrever(sock, jid, nome)
@@ -150,19 +238,25 @@ module.exports = function iniciarHandler(sock) {
     if (texto === '!torneio clans') return torneioClans(sock, jid)
 
     // ─── ATACAR (RPG ou TORNEIO) ─────────────────────────────
-if (texto === '!atacar') {
-  if (
-    state.torneio?.batalhaAtual &&
-    (nome === state.torneio.batalhaAtual.j1 || nome === state.torneio.batalhaAtual.j2)
-  ) {
-    return atacarTorneio(sock, jid, nome)
-  }
-  return atacar(sock, jid, nome)
-}
+    if (texto === '!atacar') {
+      const torneioAtivo = state.torneio
+      if (
+        torneioAtivo?.batalhaAtual &&
+        (nome === torneioAtivo.batalhaAtual.j1 || nome === torneioAtivo.batalhaAtual.j2)
+      ) {
+        return atacarTorneio(sock, jid, nome)
+      }
+      return atacar(sock, jid, nome)
+    }
+
     // ─── WAIFU / DIÁRIO ──────────────────────────────────────
     if (texto === '!waifu') return waifuDoDia(sock, jid)
     if (texto === '!diario') return desafioDiario(sock, jid, nome)
-    if (texto === '!completar') return completarDesafio(sock, jid, nome)
+    if (texto === '!completar') {
+      await completarDesafio(sock, jid, nome)
+      if (adicionarXpRank(nome, 10)) await anunciarSubidaRank(sock, jid, nome, sender, getUser(nome).rank)
+      return
+    }
 
     // ─── LOJA ────────────────────────────────────────────────
     if (texto === '!loja') return verLoja(sock, jid)
@@ -173,7 +267,7 @@ if (texto === '!atacar') {
     }
     if (texto.startsWith('!comprar ')) return comprar(sock, jid, nome, texto.split(' ')[1])
 
-    // ─── PERFIL / RANKING ────────────────────────────────────
+    // ─── PERFIL / RANKING / AFINIDADE ────────────────────────
     if (texto === '!perfil') return UI.mostrarPerfil(sock, jid, nome)
 
     if (texto === '!ranking') {
@@ -188,12 +282,20 @@ if (texto === '!atacar') {
       return enviarRankingComImagem(sock, jid, sorted, top3)
     }
 
+    if (texto === '!afinidade') return verAfinidade(sock, jid, nome)
+
+    // ─── MISSÕES ÉPICAS ──────────────────────────────────────
+    if (texto === '!missoes-epicas') return verMissoesEpicas(sock, jid, nome)
+
+    // ─── CONQUISTAS ──────────────────────────────────────────
+    if (texto === '!conquistas') return verConquistas(sock, jid, nome)
+
     // ─── MENÇÃO INTELIGENTE ──────────────────────────────────
     const mencoes = ['animebot', '@animebot', 'bot,', 'bot ']
     const foiMencionado = mencoes.some(m => texto.startsWith(m))
     if (foiMencionado) {
       let pergunta = raw
-      mencoes.forEach(m => { pergunta = pergunta.replace(new RegExp(`^${m}`, 'i'), '').trim() })
+      mencoes.forEach(m => { pergunta = pergunta.replace(new RegExp('^' + m, 'i'), '').trim() })
       if (pergunta.length > 1) return chatIA(sock, jid, pergunta, nome)
     }
 
@@ -218,28 +320,28 @@ if (texto === '!atacar') {
     if (texto.startsWith('!ia ') || texto.startsWith('!ask ') || foiMencionado) {
       const { permitido, restante } = verificarLimite(nome, 'ia')
       if (!permitido) {
-        await enviarHumano(sock, jid, `⚠️ *${nome}*, atingiste o limite diário de IA (20 mensagens)!\nReinicia amanhã. 😅\nUsa *!meuuso* para ver os teus limites.`)
+        await enviarHumano(sock, jid, '⚠️ *' + nome + '*, atingiste o limite diário de IA (20 mensagens)!\nReinicia amanhã. 😅\nUsa *!meuuso* para ver os teus limites.')
         return
       }
       const pergunta = foiMencionado
-        ? (() => { let p = raw; ['animebot', '@animebot', 'bot,', 'bot '].forEach(m => { p = p.replace(new RegExp(`^${m}`, 'i'), '').trim() }); return p })()
+        ? (() => { let p = raw; mencoes.forEach(m => { p = p.replace(new RegExp('^' + m, 'i'), '').trim() }); return p })()
         : raw.split(' ').slice(1).join(' ')
       return chatIA(sock, jid, pergunta, nome)
     }
     if (texto === '!limpar') return limparMemoria(sock, jid, nome)
     if (texto.startsWith('!resumo ')) {
       const { permitido } = verificarLimite(nome, 'resumo')
-      if (!permitido) { await enviarHumano(sock, jid, `⚠️ Limite de resumos atingido hoje! (10/dia)`); return }
+      if (!permitido) { await enviarHumano(sock, jid, '⚠️ Limite de resumos atingido hoje! (10/dia)'); return }
       return resumoAnime(sock, jid, raw.split(' ').slice(1).join(' '))
     }
     if (texto.startsWith('!recomendar ')) {
       const { permitido } = verificarLimite(nome, 'resumo')
-      if (!permitido) { await enviarHumano(sock, jid, `⚠️ Limite atingido hoje!`); return }
+      if (!permitido) { await enviarHumano(sock, jid, '⚠️ Limite atingido hoje!'); return }
       return recomendarAnime(sock, jid, raw.split(' ').slice(1).join(' '), nome)
     }
     if (texto.startsWith('!analisar ')) {
       const { permitido } = verificarLimite(nome, 'resumo')
-      if (!permitido) { await enviarHumano(sock, jid, `⚠️ Limite atingido hoje!`); return }
+      if (!permitido) { await enviarHumano(sock, jid, '⚠️ Limite atingido hoje!'); return }
       return analisarPersonagem(sock, jid, raw.split(' ').slice(1).join(' '))
     }
     if (texto.startsWith('!debate ')) return iniciarDebate(sock, jid, raw.split(' ').slice(1).join(' '))
@@ -247,7 +349,7 @@ if (texto === '!atacar') {
     if (texto === '!encerrar') return encerrarDebate(sock, jid)
     if (texto.startsWith('!comparar ')) {
       const { permitido } = verificarLimite(nome, 'resumo')
-      if (!permitido) { await enviarHumano(sock, jid, `⚠️ Limite atingido hoje!`); return }
+      if (!permitido) { await enviarHumano(sock, jid, '⚠️ Limite atingido hoje!'); return }
       const partes = raw.split(' vs ')
       return comparar(sock, jid, partes[0].replace('!comparar ', '').trim(), partes[1]?.trim() || '?')
     }
@@ -257,12 +359,12 @@ if (texto === '!atacar') {
     // Ver uso de IA
     if (texto === '!meuuso') {
       const uso = verUso(nome)
-      if (!uso) { await enviarHumano(sock, jid, `📊 *${nome}*, ainda não usaste nenhum recurso de IA hoje!`); return }
-      let txt = `📊 *Uso de IA hoje — ${nome}*\n\n`
+      if (!uso) { await enviarHumano(sock, jid, '📊 *' + nome + '*, ainda não usaste nenhum recurso de IA hoje!'); return }
+      let txt = '📊 *Uso de IA hoje — ' + nome + '*\n\n'
       const emojis = { ia: '🤖', img: '🎨', musica: '🎵', voz: '🎙️', quizia: '🎮', resumo: '📖', historia: '📝' }
       for (const [tipo, dados] of Object.entries(uso)) {
         const barra = '█'.repeat(Math.round((dados.uso / dados.limite) * 10)) + '░'.repeat(10 - Math.round((dados.uso / dados.limite) * 10))
-        txt += `${emojis[tipo] || '▪️'} *${tipo}*: ${dados.uso}/${dados.limite} [${barra}]\n`
+        txt += (emojis[tipo] || '▪️') + ' *' + tipo + '*: ' + dados.uso + '/' + dados.limite + ' [' + barra + ']\n'
       }
       txt += '\n⏰ Limites reiniciam à meia-noite!'
       await enviarHumano(sock, jid, txt)
@@ -271,7 +373,7 @@ if (texto === '!atacar') {
 
     // Status das APIs (admin)
     if (texto === '!statusapi') {
-      await enviarHumano(sock, jid, `🔌 *Estado das APIs*\n\n${statusAPIs()}`)
+      await enviarHumano(sock, jid, '🔌 *Estado das APIs*\n\n' + statusAPIs())
       return
     }
 
@@ -281,7 +383,7 @@ if (texto === '!atacar') {
     // ─── ÁUDIO ───────────────────────────────────────────────
     if (texto.startsWith('!musica ')) return gerarMusica(sock, jid, raw.split(' ').slice(1).join(' '))
     if (texto.startsWith('!voz ')) {
-      const textoFala = raw.slice(5).trim()  // remove "!voz " e espaços
+      const textoFala = raw.slice(5).trim()
       return gerarVoz(sock, jid, textoFala)
     }
     if (texto === '!frase') return fraseFamosa(sock, jid)
@@ -339,6 +441,21 @@ if (texto === '!atacar') {
     }
     if (texto.startsWith('!cla ')) return verCla(sock, jid, raw.split(' ').slice(1).join(' '))
 
+    // ─── GUILDAS ─────────────────────────────────────────────
+    if (texto.startsWith('!criar-guilda ')) return criarGuilda(sock, jid, nome, raw.split(' ').slice(1).join(' '))
+    if (texto.startsWith('!entrar-guilda ')) return entrarGuilda(sock, jid, nome, raw.split(' ').slice(1).join(' '))
+    if (texto === '!sair-guilda') return sairGuilda(sock, jid, nome)
+    if (texto === '!guildas') return verGuildas(sock, jid)
+    if (texto.startsWith('!guilda ')) return verGuilda(sock, jid, raw.split(' ').slice(1).join(' '))
+    // ─── GUERRA DE GUILDAS ──────────────────────────────────
+if (texto === '!guerra') return iniciarGuerraGuildas(sock, jid, nome)
+if (texto === '!guerra lutar') return lutarGuerra(sock, jid, nome)
+if (texto === '!guerra status') return statusGuerra(sock, jid)
+
+// ─── EVENTO GLOBAL ─────────────────────────────────────
+if (texto === '!evento') return iniciarEventoGlobal(sock, jid, nome)
+if (texto === '!evento atacar') return atacarEvento(sock, jid, nome)
+if (texto === '!evento status') return statusEvento(sock, jid)
     // ─── CASAMENTO ───────────────────────────────────────────
     if (texto.startsWith('!propor ')) return propor(sock, jid, nome, raw.split(' ').slice(1).join(' '))
     if (texto === '!aceitar-casamento') return aceitarCasamento(sock, jid, nome)
