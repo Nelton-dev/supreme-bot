@@ -2,7 +2,7 @@
 
 ```markdown
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Nelton-dev/supreme-bot/main/assets/1_Ticyy_k3xxjhO6lVcVTYMw.png" alt="AnimeBot + Nexus World" width="100%">
+  <img src="https://raw.githubusercontent.com/Nelton-dev/supreme-bot/master/assets/1_Ticyy_k3xxjhO6lVcVTYMw.png" alt="AnimeBot + Nexus World" width="100%">
   
   # 🤖 AnimeBot — WhatsApp Bot de Anime + RPG Nexus World
   
