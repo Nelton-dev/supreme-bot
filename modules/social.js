@@ -32,17 +32,17 @@ async function criarCla(sock, jid, nome, nomeCla) {
 
   const claAtual = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
   if (claAtual) {
-    await sock.sendMessage(jid, { text: `⚠️ *${nome}*, já pertences ao clã *${claAtual[1].nome}*!\nSai primeiro com *!sair-cla*` })
+    await sock.sendMessage(jid, { text: `⚠️ *${nome}*, já te enlaças a uma guilda do Nexus: *${claAtual[1].nome}*!\nSai primeiro com *!sair-cla* para seguir outro caminho.` })
     return
   }
 
   if (social.clans[nomeCla]) {
-    await sock.sendMessage(jid, { text: `❌ Já existe um clã com o nome *${nomeCla}*!` })
+    await sock.sendMessage(jid, { text: `❌ Já existe uma guilda com o nome *${nomeCla}* no mapa do Nexus!` })
     return
   }
 
   if (user.pontos < 100) {
-    await sock.sendMessage(jid, { text: `❌ Precisas de *100 pontos* para criar um clã!\nTens: ${user.pontos} pontos.` })
+    await sock.sendMessage(jid, { text: `❌ Precisas de *100 pontos* para forjar uma guilda!\nTens: ${user.pontos} pontos.` })
     return
   }
 
@@ -62,7 +62,7 @@ async function criarCla(sock, jid, nome, nomeCla) {
   salvarSocial(social)
 
   await sock.sendMessage(jid, {
-    text: `${emblema} *CLÃ CRIADO!*\n\n🏰 Nome: *${nomeCla}*\n👑 Líder: ${nome}\n📅 Criado em: ${social.clans[nomeCla].criado}\n\n💡 Outros membros podem entrar com:\n*!entrar-cla ${nomeCla}*`
+    text: `${emblema} *GUILDA FORJADA NO NEXUS!*\n\n🏰 Nome: *${nomeCla}*\n👑 Líder: ${nome}\n📅 Criado em: ${social.clans[nomeCla].criado}\n\n🛡️ Uma aliança nasceu para enfrentar o Vazio.\n💡 Outros membros podem entrar com:\n*!entrar-cla ${nomeCla}*`
   })
 }
 
@@ -71,12 +71,12 @@ async function entrarCla(sock, jid, nome, nomeCla) {
 
   const claAtual = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
   if (claAtual) {
-    await sock.sendMessage(jid, { text: `⚠️ Já pertences ao clã *${claAtual[1].nome}*! Sai com *!sair-cla*` })
+    await sock.sendMessage(jid, { text: `⚠️ Já pertenceste a uma guilda do Nexus: *${claAtual[1].nome}*! Sai com *!sair-cla* para seguir outro destino.` })
     return
   }
 
   if (!social.clans[nomeCla]) {
-    await sock.sendMessage(jid, { text: `❌ Clã *${nomeCla}* não encontrado! Usa *!clans* para ver os clãs.` })
+    await sock.sendMessage(jid, { text: `❌ A guilda *${nomeCla}* não foi encontrada no mapa do Nexus. Usa *!clans* para ver as alianças.` })
     return
   }
 
@@ -85,7 +85,7 @@ async function entrarCla(sock, jid, nome, nomeCla) {
 
   const c = social.clans[nomeCla]
   await sock.sendMessage(jid, {
-    text: `${c.emblema} *${nome}* entrou no clã *${nomeCla}*!\n👥 Membros: ${c.membros.length}`
+    text: `${c.emblema} *${nome}* juntou-se à guilda *${nomeCla}*!\n🛡️ O Vazio agora terá de medir forças com uma aliança.\n👥 Membros: ${c.membros.length}`
   })
 }
 
@@ -94,14 +94,14 @@ async function sairCla(sock, jid, nome) {
   const entrada = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
 
   if (!entrada) {
-    await sock.sendMessage(jid, { text: `⚠️ *${nome}*, não pertences a nenhum clã!` })
+    await sock.sendMessage(jid, { text: `⚠️ *${nome}*, ainda não te enlaças a nenhuma guilda do Nexus!` })
     return
   }
 
   const [nomeCla, cla] = entrada
 
   if (cla.lider === nome && cla.membros.length > 1) {
-    await sock.sendMessage(jid, { text: `👑 És o líder! Passa a liderança primeiro com *!passar-lider <nome>*` })
+    await sock.sendMessage(jid, { text: `👑 És o líder! Passa a liderança primeiro com *!passar-lider <nome>* para não deixar a aliança em ruínas.` })
     return
   }
 
@@ -109,10 +109,10 @@ async function sairCla(sock, jid, nome) {
 
   if (cla.membros.length === 0) {
     delete social.clans[nomeCla]
-    await sock.sendMessage(jid, { text: `🏚️ Clã *${nomeCla}* dissolvido por falta de membros.` })
+    await sock.sendMessage(jid, { text: `🏚️ A guilda *${nomeCla}* foi dissolvida por falta de membros.` })
   } else {
     if (cla.lider === nome) cla.lider = cla.membros[0]
-    await sock.sendMessage(jid, { text: `👋 *${nome}* saiu do clã *${nomeCla}*.` })
+    await sock.sendMessage(jid, { text: `👋 *${nome}* abandonou a guilda *${nomeCla}*.` })
   }
 
   salvarSocial(social)
@@ -123,12 +123,12 @@ async function verClans(sock, jid) {
   const clans = Object.values(social.clans)
 
   if (!clans.length) {
-    await sock.sendMessage(jid, { text: '🏚️ Nenhum clã criado ainda!\nCria o teu com *!criar-cla <nome>* (custa 100 pontos)' })
+    await sock.sendMessage(jid, { text: '🏚️ Nenhuma guilda foi forjada ainda no Nexus!\nCria a tua com *!criar-cla <nome>* (custa 100 pontos)' })
     return
   }
 
   const sorted = clans.sort((a, b) => b.xp - a.xp)
-  let txt = '⚔️ *CLÃS DO GRUPO* ⚔️\n\n'
+  let txt = '⚔️ *GUILDAS DO NEXUS* ⚔️\n\nAs alianças mais fortes carregam o peso da era.\n\n'
   sorted.forEach((c, i) => {
     txt += `${i + 1}. ${c.emblema} *${c.nome}*\n   👑 ${c.lider} | 👥 ${c.membros.length} membros | ⭐ ${c.xp} XP\n\n`
   })
@@ -146,7 +146,7 @@ async function verCla(sock, jid, nomeCla) {
   }
 
   await sock.sendMessage(jid, {
-    text: `${cla.emblema} *CLÃ ${cla.nome.toUpperCase()}*\n\n👑 Líder: ${cla.lider}\n👥 Membros (${cla.membros.length}):\n${cla.membros.map(m => `  • ${m}`).join('\n')}\n⭐ XP do Clã: ${cla.xp}\n🏅 Nível: ${cla.nivel}\n📅 Criado: ${cla.criado}`
+    text: `${cla.emblema} *GUILDA ${cla.nome.toUpperCase()}*\n\n👑 Líder: ${cla.lider}\n👥 Membros (${cla.membros.length}):\n${cla.membros.map(m => `  • ${m}`).join('\n')}\n⭐ XP da Guilda: ${cla.xp}\n🏅 Nível: ${cla.nivel}\n📅 Criado: ${cla.criado}`
   })
 }
 
@@ -158,21 +158,21 @@ async function elegerRepresentante(sock, jid, nome, alvo) {
 
   const entrada = Object.entries(social.clans).find(([, c]) => c.membros.includes(nome))
   if (!entrada) {
-    await sock.sendMessage(jid, { text: '❌ Não pertences a nenhum clã!' })
+    await sock.sendMessage(jid, { text: '❌ Não pertences a nenhuma guilda do Nexus!' })
     return
   }
 
   const [clanId, clan] = entrada
 
   if (!clan.membros.includes(alvo)) {
-    await sock.sendMessage(jid, { text: '❌ Esse membro não está no teu clã!' })
+    await sock.sendMessage(jid, { text: '❌ Esse membro não está na tua guilda!' })
     return
   }
 
   clan.representante = alvo
   salvarSocial(social)
 
-  await sock.sendMessage(jid, { text: `✅ *${alvo}* é agora o representante do clã *${clan.nome}* para os torneios!` })
+  await sock.sendMessage(jid, { text: `✅ *${alvo}* passou a ser o representante da guilda *${clan.nome}* para os torneios do Nexus!` })
 }
 
 // ════════════════════════════════════════
@@ -295,7 +295,7 @@ async function verMissoes(sock, jid, nome) {
   const missoes = getMissoesUsuario(nome)
   const social = carregarSocial()
 
-  let txt = `📋 *MISSÕES DE ${nome.toUpperCase()}*\n\n`
+  let txt = `� *MISSÕES DO NEXUS DE ${nome.toUpperCase()}*\n\nCada missão revela um novo fragmento do caminho do Caçador.\n\n`
   MISSOES.forEach(m => {
     const prog = social.missoes[nome]?.[m.id]
     if (!prog) return

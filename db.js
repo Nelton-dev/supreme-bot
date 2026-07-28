@@ -35,6 +35,7 @@ function getUser(nome, criar = true) {
       ultima_atividade: Date.now(),
       elemento: null,
       afinidade: {},
+      moralidade: 0,
       habilidades_combate: [],
       buffs_ativos: []
     }

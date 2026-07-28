@@ -109,7 +109,7 @@ async function verLoja(sock, jid, categoria) {
   }
 
   await sock.sendMessage(jid, {
-    text: '🏪 *LOJA DO NEXUS WORLD*\n\nEscolhe uma categoria:\n\n🏅 *!loja titulo* — Títulos (100-500 pts)\n💪 *!loja boost* — Boosts permanentes (80-150 pts)\n🧪 *!loja pocao* — Poções e escudos (40-2500 pts)\n⚗️ *!loja pocao_rank* — Poções de Rank (500-2500 pts)\n⚔️ *!loja habilidade* — Habilidades e Poderes (200-600 pts)\n🐾 *!loja pet* — Pets de anime (150-300 pts)\n🔮 *!loja elemental* — Pedras elementais (200 pts)\n\n🏪 *!loja tudo* — Ver tudo\n💰 Comprar: *!comprar <id>*\n\n💡 Usa *!perfil* para ver os teus pontos!'
+    text: '🏪 *LOJA DO NEXUS WORLD*\n\nO mercado do Nexus oferece bênçãos, artefatos e ferramentas para os Caçadores que resistem ao Vazio.\n\n🏅 *!loja titulo* — Títulos (100-500 pts)\n💪 *!loja boost* — Boosts permanentes (80-150 pts)\n🧪 *!loja pocao* — Poções e escudos (40-2500 pts)\n⚗️ *!loja pocao_rank* — Poções de Rank (500-2500 pts)\n⚔️ *!loja habilidade* — Habilidades e Poderes (200-600 pts)\n🐾 *!loja pet* — Pets de anime (150-300 pts)\n🔮 *!loja elemental* — Pedras elementais (200 pts)\n\n🏪 *!loja tudo* — Ver tudo\n💰 Comprar: *!comprar <id>*\n\n💡 Usa *!perfil* para ver os teus pontos e preparar-te para a próxima missão!'
   })
 }
 
@@ -221,7 +221,7 @@ async function comprar(sock, jid, nome, itemId) {
   saveUser(nome, user)
 
   await sock.sendMessage(jid, {
-    text: '✅ *' + nome + '* comprou *' + item.nome + '*!\n💰 Pontos restantes: ' + (user.pontos || 0) + '\n📝 ' + item.desc
+    text: '✅ *' + nome + '* adquiriu *' + item.nome + '* no mercado do Nexus!\n💰 Pontos restantes: ' + (user.pontos || 0) + '\n📝 ' + item.desc
   })
 }
 

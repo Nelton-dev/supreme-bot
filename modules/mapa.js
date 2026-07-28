@@ -33,7 +33,7 @@ async function verMapa(sock, jid, nome) {
   const ranks = ['E','D','C','B','A','S','SS','Nacional','Monarca','Divino']
   const rankIdx = ranks.indexOf(rankAtual)
 
-  let txt = '🗺️ *MAPA DO NEXUS WORLD*\n\n'
+  let txt = '🗺️ *MAPA DO NEXUS WORLD*\n\nOs Pilares revelam os caminhos do destino.\n\n'
   txt += '📍 *Área Atual:* ' + (AREAS.find(a => a.id === areaAtual)?.nome || '🌑 Vazio Inicial') + '\n\n'
   txt += '═══ *Áreas Disponíveis* ═══\n\n'
 
@@ -96,7 +96,7 @@ async function viajar(sock, jid, nome, areaId) {
   saveUser(nome, user)
 
   await sock.sendMessage(jid, {
-    text: '🗺️ *VIAGEM CONCLUÍDA!*\n\n📍 Você chegou a: ' + area.nome + '\n📝 ' + area.desc + '\n\nOs bónus da área estão ativos!'
+    text: '🗺️ *VIAGEM CONCLUÍDA!*\n\n📍 Chegaste a: ' + area.nome + '\n📝 ' + area.desc + '\n\nOs bónus da área estão ativos e o Nexus responde ao teu passo.'
   })
 }
 

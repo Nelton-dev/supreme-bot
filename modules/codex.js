@@ -88,6 +88,27 @@ const ENTRADAS_CODEX = [
     categoria: 'Profecia',
     desbloqueio: 'todas_missoes',
     conteudo: '"Eu sonhei com um mundo onde guerreiros de todas as eras lutassem juntos. Onde a força não viesse do poder bruto, mas da vontade de proteger. O Nexus é esse sonho. E cada Caçador é uma peça dele.\n\nSe um dia eu desaparecer, o Nexus continuará — enquanto houver Caçadores dispostos a lutar."\n\n— Últimas palavras registradas de Nelton, O Sonhador'
+  },
+  {
+    id: 'guerra_guildas',
+    titulo: 'Guerra entre Guildas',
+    categoria: 'Sociedade',
+    desbloqueio: 'rank_c',
+    conteudo: 'A história das Guildas é marcada por alianças e disputas. Nas Grandes Guerras de Guildas, facções lutaram pelo controle de territórios sagrados, arenas e recursos do Nexus. A vitória não dependia apenas da força, mas da inteligência, da união e da estratégia.\n\nAinda hoje, as Guildas mais antigas são reverenciadas como guardiãs do equilíbrio e como as responsáveis pela paz entre as facções.'
+  },
+  {
+    id: 'fragmentos',
+    titulo: 'Fragmentos da Lore',
+    categoria: 'Arcanum',
+    desbloqueio: 'rank_b',
+    conteudo: 'Fragmentos da Lore são pedaços de memória gravados no próprio tecido do Nexus. Eles aparecem como itens raros e podem conter visões dos mundos anteriores, segredos sobre as arenas e dicas sobre a corrupção dos Pilares.\n\nDizem que quem reúne fragmentos suficientes pode desvendar o passado de Nelton e ganhar acesso a habilidades escondidas.'
+  },
+  {
+    id: 'agentes',
+    titulo: 'Os Agentes do Sistema',
+    categoria: 'Sociedade',
+    desbloqueio: 'rank_d',
+    conteudo: 'O Sistema do Nexus não age sozinho. Ele possui agentes — espíritos de dados e entidades etéreas — que observam os Caçadores, gerenciam eventos, distribuem missões e restauram o equilíbrio quando as eras se desequilibram.\n\nOs agentes sussurram através de mensagens enviadas pelos Pilares, guiam aventureiros e, às vezes, testam a coragem dos mais audaciosos.'
   }
 ]
 
@@ -106,11 +127,11 @@ async function verCodex(sock, jid, entradaId) {
 
     const desbloqueada = verificarDesbloqueio(entrada.desbloqueio, user)
     if (!desbloqueada) {
-      await sock.sendMessage(jid, { text: '🔒 Esta entrada do Codex ainda não foi desbloqueada! Continue a sua jornada para descobri-la.' })
+      await sock.sendMessage(jid, { text: '🔒 Esta entrada ainda está escondida nas ruínas do Nexus. Continue a sua jornada e os Pilares revelarão o seu segredo.' })
       return
     }
 
-    const txt = '📖 *CODEX DO NEXUS*\n\n*' + entrada.titulo + '*\n📂 ' + entrada.categoria + '\n\n' + entrada.conteudo
+    const txt = '📖 *CODEX DO NEXUS*\n\n*' + entrada.titulo + '*\n📂 ' + entrada.categoria + '\n\nAs páginas do Nexus foram preservadas para os Caçadores que ainda procuram a verdade.\n\n' + entrada.conteudo
     await sock.sendMessage(jid, { text: txt })
     return
   }
@@ -122,7 +143,7 @@ async function verCodex(sock, jid, entradaId) {
     categorias[e.categoria].push(e)
   })
 
-  let txt = '📖 *CODEX DO NEXUS WORLD*\n\n'
+  let txt = '📖 *CODEX DO NEXUS WORLD*\n\nAs páginas abaixo foram preservadas pelo Sistema para os escolhidos que ousam lembrar.\n\n'
   for (const [cat, entradas] of Object.entries(categorias)) {
     txt += '*── ' + cat + ' ──*\n'
     entradas.forEach(e => {

@@ -1,16 +1,36 @@
 const { getUser, saveUser } = require('../db')
 
 // ════════════════════════════════════════
-//  ELEMENTOS E INTERAÇÕES
+//  PILARES PRIMORDIAIS E INTERAÇÕES
 // ════════════════════════════════════════
 const ELEMENTOS = {
-  fogo:     { emoji: '🔥', forteContra: 'natureza', fracoContra: 'agua', habilidade: 'Explosão Flamejante', desc: 'Dano extra contra Natureza. Queima o inimigo por 3 turnos.' },
-  agua:     { emoji: '💧', forteContra: 'fogo', fracoContra: 'trovão', habilidade: 'Torrente Congelante', desc: 'Dano extra contra Fogo. Reduz o ataque do inimigo.' },
-  natureza: { emoji: '🌿', forteContra: 'agua', fracoContra: 'fogo', habilidade: 'Vinhas Espinhosas', desc: 'Dano extra contra Água. Envenena o inimigo.' },
-  trovão:   { emoji: '⚡', forteContra: 'agua', fracoContra: 'terra', habilidade: 'Tempestade Elétrica', desc: 'Dano extra contra Água. Atordoa o inimigo por 1 turno.' },
-  terra:    { emoji: '🪨', forteContra: 'trovão', fracoContra: 'natureza', habilidade: 'Terremoto', desc: 'Dano extra contra Trovão. Aumenta sua defesa.' },
-  trevas:   { emoji: '🌑', forteContra: 'luz', fracoContra: 'luz', habilidade: 'Abismo Sombrio', desc: 'Dano extra contra Luz. Drena vida do inimigo.' },
-  luz:      { emoji: '✨', forteContra: 'trevas', fracoContra: 'trevas', habilidade: 'Julgamento Divino', desc: 'Dano extra contra Trevas. Cura uma porção do dano causado.' }
+  ignis: { emoji: '🔥', forteContra: 'petra', fracoContra: 'aquor', habilidade: 'Explosão Flamejante', desc: 'Ignis, o Pilar da Paixão e da destruição criativa. Queima o inimigo por 3 turnos.' },
+  aquor: { emoji: '💧', forteContra: 'ignis', fracoContra: 'fulgor', habilidade: 'Torrente Congelante', desc: 'Aquor, o Pilar da fluidez e da adaptação. Reduz o ataque do inimigo.' },
+  petra: { emoji: '🪨', forteContra: 'fulgor', fracoContra: 'aeris', habilidade: 'Terremoto', desc: 'Petra, o Pilar da firmeza e da tradição. Aumenta sua defesa.' },
+  aeris: { emoji: '🌬️', forteContra: 'petra', fracoContra: 'ignis', habilidade: 'Vento do Despertar', desc: 'Aeris, o Pilar da liberdade e da mudança. Ganha mobilidade e evasão.' },
+  lux: { emoji: '✨', forteContra: 'umbra', fracoContra: 'umbra', habilidade: 'Julgamento Divino', desc: 'Lux, o Pilar da clareza e da verdade. Cura uma porção do dano causado.' },
+  umbra: { emoji: '🌑', forteContra: 'lux', fracoContra: 'lux', habilidade: 'Abismo Sombrio', desc: 'Umbra, o Pilar do mistério e do potencial oculto. Drena vida do inimigo.' },
+  fulgor: { emoji: '⚡', forteContra: 'aquor', fracoContra: 'petra', habilidade: 'Tempestade Elétrica', desc: 'Fulgor, o Pilar da transformação e do choque. Atordoa o inimigo por 1 turno.' },
+  tempus: { emoji: '⏳', forteContra: 'animus', fracoContra: null, habilidade: 'Eclipse Temporal', desc: 'Tempus, Pilar perdido do tempo, selado por ser perigoso demais.', raro: true },
+  animus: { emoji: '🕊️', forteContra: 'tempus', fracoContra: null, habilidade: 'Essência Viva', desc: 'Animus, o Pilar da alma e da essência, raríssimo entre os Caçadores.', raro: true }
+}
+
+const ALIAS_ELEMENTOS = {
+  fogo: 'ignis',
+  agua: 'aquor',
+  natureza: 'petra',
+  terra: 'petra',
+  trovão: 'fulgor',
+  trevas: 'umbra',
+  luz: 'lux',
+  ar: 'aeris',
+  vento: 'aeris'
+}
+
+function normalizarElemento(elemento) {
+  if (!elemento) return null
+  const chave = String(elemento).toLowerCase()
+  return ALIAS_ELEMENTOS[chave] || chave
 }
 
 // ════════════════════════════════════════
@@ -23,20 +43,21 @@ async function escolherElemento(sock, jid, nome, elemento) {
     return
   }
 
-  const elem = ELEMENTOS[elemento]
+  const elementoNormalizado = normalizarElemento(elemento)
+  const elem = ELEMENTOS[elementoNormalizado]
   if (!elem) {
-    const lista = Object.entries(ELEMENTOS).map(([k, v]) => `${v.emoji} *${k}* - ${v.desc}`).join('\n')
-    await sock.sendMessage(jid, { text: `⚠️ Elemento inválido! Escolha um dos elementos disponíveis:\n\n${lista}\n\nUse *!elemento <nome>*` })
+    const lista = Object.entries(ELEMENTOS).filter(([, v]) => !v.raro).map(([k, v]) => `${v.emoji} *${k}* - ${v.desc}`).join('\n')
+    await sock.sendMessage(jid, { text: `⚠️ Pilar inválido! Escolha um dos Pilares disponíveis:\n\n${lista}\n\nUse *!elemento <nome>*` })
     return
   }
 
-  user.elemento = elemento
+  user.elemento = elementoNormalizado
   if (!user.afinidade) user.afinidade = {}
-  user.afinidade[elemento] = (user.afinidade[elemento] || 0) + 1
+  user.afinidade[elementoNormalizado] = (user.afinidade[elementoNormalizado] || 0) + 1
   saveUser(nome, user)
 
   await sock.sendMessage(jid, {
-    text: `${elem.emoji} *${nome}* escolheu o elemento *${elemento.toUpperCase()}*!\n\nHabilidade especial: *${elem.habilidade}*\n${elem.desc}\n\nUse *!afinidade* para ver seus elementos.`
+    text: `${elem.emoji} *${nome}* recebeu a bênção do Pilar *${elemento.toUpperCase()}*!\n\nHabilidade especial: *${elem.habilidade}*\n${elem.desc}\n\nUse *!afinidade* para ver a sua ligação com os Pilares.`
   })
 }
 
@@ -46,17 +67,22 @@ async function escolherElemento(sock, jid, nome, elemento) {
 async function verAfinidade(sock, jid, nome) {
   const user = getUser(nome)
   if (!user.elemento) {
-    await sock.sendMessage(jid, { text: '🌌 Você ainda não escolheu um elemento! Use *!elemento <nome>* para escolher.' })
+    await sock.sendMessage(jid, { text: '🌌 Você ainda não escolheu um Pilar! Use *!elemento <nome>* para receber a sua bênção.' })
     return
   }
 
   const afinidade = user.afinidade || {}
-  let txt = `🌟 *Afinidade Elemental de ${nome}*\n\n`
+  let txt = `🌟 *Afinidade dos Pilares de ${nome}*\n\n`
   for (const [elem, nivel] of Object.entries(afinidade)) {
-    const barra = '█'.repeat(nivel) + '░'.repeat(10 - nivel)
-    txt += `${ELEMENTOS[elem].emoji} *${elem}*: Nível ${nivel} [${barra}]\n`
+    const chave = normalizarElemento(elem)
+    const info = ELEMENTOS[chave]
+    if (!info) continue
+    const barra = '█'.repeat(Math.min(10, nivel)) + '░'.repeat(Math.max(0, 10 - Math.min(10, nivel)))
+    txt += `${info.emoji} *${chave}*: Nível ${nivel} [${barra}]\n`
   }
-  txt += `\n🎯 Elemento Principal: ${ELEMENTOS[user.elemento].emoji} *${user.elemento.toUpperCase()}*`
+  const elementoPrincipal = normalizarElemento(user.elemento)
+  const infoPrincipal = ELEMENTOS[elementoPrincipal]
+  txt += `\n🎯 Pilar Principal: ${infoPrincipal ? infoPrincipal.emoji : '🕯️'} *${elementoPrincipal ? elementoPrincipal.toUpperCase() : 'NENHUM'}*`
 
   await sock.sendMessage(jid, { text: txt })
 }
@@ -65,8 +91,8 @@ async function verAfinidade(sock, jid, nome) {
 //  CALCULAR DANO COM ELEMENTO
 // ════════════════════════════════════════
 function calcularDanoElemental(atacante, defensor, danoBase) {
-  const elementoAtk = atacante.elemento
-  const elementoDef = defensor.elemento
+  const elementoAtk = normalizarElemento(atacante.elemento)
+  const elementoDef = normalizarElemento(defensor.elemento)
 
   if (!elementoAtk || !elementoDef) return danoBase
 
@@ -74,12 +100,11 @@ function calcularDanoElemental(atacante, defensor, danoBase) {
   let multiplicador = 1.0
 
   if (interacao.forteContra === elementoDef) {
-    multiplicador = 1.5 // Vantagem elemental
+    multiplicador = 1.5
   } else if (interacao.fracoContra === elementoDef) {
-    multiplicador = 0.7 // Desvantagem elemental
+    multiplicador = 0.7
   }
 
-  // Bónus de afinidade
   const afinidadeAtk = atacante.afinidade?.[elementoAtk] || 0
   multiplicador += afinidadeAtk * 0.05 // +5% por nível de afinidade
 

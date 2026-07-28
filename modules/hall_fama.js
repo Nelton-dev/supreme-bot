@@ -30,7 +30,7 @@ async function verHallFama(sock, jid) {
     'Iniciado'
   ]
 
-  let txt = '🏅 *HALL DA FAMA DO NEXUS WORLD* 🏅\n\n'
+  let txt = '🏅 *HALL DA FAMA DO NEXUS WORLD* 🏅\n\nOs maiores Caçadores do ciclo são lembrados pelas eras.\n\n'
   txt += '═══ *Os Maiores Caçadores* ═══\n\n'
 
   sorted.forEach(([nome, dados], i) => {

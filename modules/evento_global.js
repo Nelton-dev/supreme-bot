@@ -29,13 +29,13 @@ async function iniciarEventoGlobal(sock, jid, nome) {
   }
 
   await sock.sendMessage(jid, {
-    text: '🐉 *EVENTO GLOBAL INICIADO!* 🐉\n\n' + boss.emoji + ' *' + boss.nome + '* invadiu o Nexus World!\n\n❤️ Vida: ' + boss.vida + '/' + boss.vida + '\n\n⚔️ Todos os Caçadores podem atacar com *!evento atacar*!\n⏱️ 2 horas para derrotá-lo!'
+    text: '🐉 *EVENTO GLOBAL INICIADO!* 🐉\n\n' + boss.emoji + ' *' + boss.nome + '* atravessou uma fenda do Vazio e ameaçou a ordem dos Pilares no Nexus!\n\n❤️ Vida: ' + boss.vida + '/' + boss.vida + '\n\n⚔️ Todos os Caçadores podem atacar com *!evento atacar*!\n⏱️ 2 horas para derrotá-lo antes que a Corrupção se espalhe pelos Pilares!'
   })
 
   // Timeout de 2 horas
   setTimeout(async () => {
     if (eventoAtivo) {
-      await sock.sendMessage(jid, { text: '⏰ O tempo acabou! ' + eventoAtivo.boss.emoji + ' *' + eventoAtivo.boss.nome + '* fugiu para o Vazio...\nNinguém recebeu recompensas.' })
+      await sock.sendMessage(jid, { text: '⏰ O tempo acabou! ' + eventoAtivo.boss.emoji + ' *' + eventoAtivo.boss.nome + '* recuou para o Vazio, mas a Corrupção deixou marcas nos Pilares...\nNinguém recebeu recompensas, mas a ameaça não desapareceu por completo.' })
       eventoAtivo = null
     }
   }, 2 * 60 * 60 * 1000)
@@ -72,7 +72,7 @@ async function atacarEvento(sock, jid, nome) {
   eventoAtivo.boss.vidaAtual = Math.max(0, eventoAtivo.boss.vidaAtual - dano)
   eventoAtivo.participantes[nome] = agora
 
-  let txt = '⚔️ @' + nome + ' atacou ' + eventoAtivo.boss.emoji + ' *' + eventoAtivo.boss.nome + '*!\n💢 ' + dano + ' de dano!\n\n❤️ Vida do Boss: ' + eventoAtivo.boss.vidaAtual + '/' + eventoAtivo.boss.vida
+  let txt = '⚔️ @' + nome + ' avançou contra ' + eventoAtivo.boss.emoji + ' *' + eventoAtivo.boss.nome + '*!\n💢 ' + dano + ' de dano!\n\n❤️ Vida do Boss: ' + eventoAtivo.boss.vidaAtual + '/' + eventoAtivo.boss.vida
 
   if (eventoAtivo.boss.vidaAtual <= 0) {
     // Boss derrotado!
