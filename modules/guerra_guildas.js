@@ -22,7 +22,7 @@ function salvarGuerra(data) {
 async function iniciarGuerraGuildas(sock, jid, nome) {
   const guerra = carregarGuerra()
   if (guerra.ativa) {
-    await sock.sendMessage(jid, { text: '⚔️ Uma Guerra de Guildas já está em curso!' })
+    await sock.sendMessage(jid, { text: '⚔️ Uma guerra entre guildas já está em curso no Nexus!' })
     return
   }
 
@@ -30,7 +30,7 @@ async function iniciarGuerraGuildas(sock, jid, nome) {
   const lista = Object.values(guildas)
 
   if (lista.length < 2) {
-    await sock.sendMessage(jid, { text: '❌ Precisas de pelo menos 2 guildas para iniciar uma guerra!' })
+    await sock.sendMessage(jid, { text: '❌ Precisas de pelo menos 2 guildas para acender a guerra!' })
     return
   }
 
@@ -51,7 +51,7 @@ async function iniciarGuerraGuildas(sock, jid, nome) {
   guerra.inicio = Date.now()
   salvarGuerra(guerra)
 
-  let txt = '⚔️ *GUERRA DE GUILDAS INICIADA!* ⚔️\n\n'
+  let txt = '⚔️ *A GRANDE GUERRA ENTRE GUILDAS ACENDE NO NEXUS!* ⚔️\n\n'
   confrontos.forEach(c => {
     txt += '🏰 *' + c.guilda1 + '* vs *' + c.guilda2 + '*\n'
   })
@@ -66,7 +66,7 @@ async function iniciarGuerraGuildas(sock, jid, nome) {
 async function lutarGuerra(sock, jid, nome) {
   const guerra = carregarGuerra()
   if (!guerra.ativa) {
-    await sock.sendMessage(jid, { text: '❌ Não há nenhuma Guerra de Guildas ativa!' })
+    await sock.sendMessage(jid, { text: '❌ Não há nenhuma guerra de guildas ativa no momento!' })
     return
   }
 
@@ -79,7 +79,7 @@ async function lutarGuerra(sock, jid, nome) {
   const guildas = JSON.parse(fs.readFileSync('./data/guildas.json', 'utf8'))
   const minhaGuilda = Object.entries(guildas).find(([_, g]) => g.membros.includes(nome))
   if (!minhaGuilda) {
-    await sock.sendMessage(jid, { text: '❌ Você não pertence a nenhuma guilda!' })
+    await sock.sendMessage(jid, { text: '❌ Não pertenceste a nenhuma guilda do Nexus!' })
     return
   }
 
@@ -90,7 +90,7 @@ async function lutarGuerra(sock, jid, nome) {
     (c.guilda1 === nomeMinhaGuilda || c.guilda2 === nomeMinhaGuilda) && !c.finalizado
   )
   if (!confronto) {
-    await sock.sendMessage(jid, { text: '❌ Sua guilda não está em nenhum confronto ativo ou já finalizou!' })
+    await sock.sendMessage(jid, { text: '❌ A tua guilda já não está em nenhum confronto ativo ou já terminou a batalha!' })
     return
   }
 
@@ -123,7 +123,7 @@ async function lutarGuerra(sock, jid, nome) {
     saveUser(nome, user)
 
     await sock.sendMessage(jid, {
-      text: '⚔️ *VITÓRIA NA GUERRA!*\n\nVocê derrotou *' + oponente + '* da guilda *' + guildaOponente.nome + '*!\n+50 pontos | +100 XP\n\nPlacar: ' + confronto.placar.guilda1 + ' x ' + confronto.placar.guilda2
+      text: '⚔️ *VITÓRIA NA GUERRA!*\n\nHonraste a tua guilda diante do Vazio e o campo de batalha tremeu.\n\n*' + oponente + '* da guilda *' + guildaOponente.nome + '* caiu sob o teu impacto.\n+50 pontos | +100 XP\n\nPlacar: ' + confronto.placar.guilda1 + ' x ' + confronto.placar.guilda2
     })
   } else {
     userOponente.pontos = (userOponente.pontos || 0) + 50
@@ -131,7 +131,7 @@ async function lutarGuerra(sock, jid, nome) {
     penalizarDerrota(nome, 3)
 
     await sock.sendMessage(jid, {
-      text: '💀 *DERROTA NA GUERRA!*\n\n*' + oponente + '* da guilda *' + guildaOponente.nome + '* venceu você!\n-3 XP de Rank\n\nPlacar: ' + confronto.placar.guilda1 + ' x ' + confronto.placar.guilda2
+      text: '💀 *DERROTA NA GUERRA!*\n\nA sombra do Vazio venceu este embate, mas a luta ainda não acabou.\n\n*' + oponente + '* da guilda *' + guildaOponente.nome + '* venceu-te esta vez.\n-3 XP de Rank\n\nPlacar: ' + confronto.placar.guilda1 + ' x ' + confronto.placar.guilda2
     })
   }
 
@@ -144,7 +144,7 @@ async function lutarGuerra(sock, jid, nome) {
 async function statusGuerra(sock, jid) {
   const guerra = carregarGuerra()
   if (!guerra.ativa) {
-    await sock.sendMessage(jid, { text: '🏳️ Nenhuma Guerra de Guildas ativa no momento.' })
+    await sock.sendMessage(jid, { text: '🏳️ Nenhuma guerra de guildas está ativa no momento.' })
     return
   }
 

@@ -1,4 +1,4 @@
-const { getUser, saveUser } = require('../db')
+const { getUser, saveUser, RANKS } = require('../db')
 const { enviarImagem } = require('./imagens')
 
 const rituais = {}
@@ -27,7 +27,7 @@ async function verificarDespertar(sock, jid, nome, sender) {
 //  INICIAR RITUAL
 // ════════════════════════════════════════
 async function iniciarRitual(sock, jid, nome, sender) {
-  const legenda = '🌌 *SISTEMA – Nexus World*\n\nUma presença desconhecida foi detectada: @' + sender.split('@')[0] + '\n\nO Conselho dos Caçadores convoca você para o Ritual de Despertar.\n\nResponda *ACEITAR* ou *RECUSAR*\n⏳ 5 minutos para decidir'
+  const legenda = '🌌 *SISTEMA – NEXUS WORLD*\n\nUma presença inesperada atravessa o silêncio do Vazio: @' + sender.split('@')[0] + '\n\nO Conselho dos Caçadores convoca-te para a *Despertação*, onde a centelha de um Pilar pode ser reconhecida.\n\nResponda *ACEITAR* ou *RECUSAR* para selar o teu lugar entre os Pilares e o destino do Nexus.\n⏳ 5 minutos para decidir'
 
   await enviarImagem(sock, jid, 'ritual_despertar', legenda, { mentions: [sender] })
 
@@ -75,8 +75,9 @@ async function aceitarDespertar(sock, jid, nome, sender) {
   user.rank = 'E'
   user.nivel_rank = 1
   user.xp_rank = 0
-  user.titulo_rank = 'Caçador Rank E'
+  user.titulo_rank = (RANKS.find(r => r.rank === 'E')?.nome || 'Desperto')
   user.ultima_atividade = Date.now()
+  user.moralidade = 0
 
   // Atribuição aleatória de elemento
   const { ELEMENTOS } = require('./combate')
@@ -93,7 +94,7 @@ async function aceitarDespertar(sock, jid, nome, sender) {
   inicializarMissoesJogador(nome)
 
   const elem = ELEMENTOS[elementoEscolhido]
-  const legenda = '🌟 @' + sender.split('@')[0] + ' aceitou o chamado!\nDespertou como *Caçador Rank E* no *Nexus World*.\n\n' + elem.emoji + ' O Pilar abençoou você com o elemento *' + elementoEscolhido.toUpperCase() + '*!\n✨ Habilidade: *' + elem.habilidade + '*\n\n"O seu caminho começa agora."'
+  const legenda = '🌟 @' + sender.split('@')[0] + ' aceitou o chamado!\nDespertou como *Desperto* no *Nexus World*.\n\n' + elem.emoji + ' O Pilar abençoou-te com o poder de *' + elementoEscolhido.toUpperCase() + '*!\n✨ Habilidade: *' + elem.habilidade + '*\n\n"O teu caminho começa agora, Caçador, sob o olhar dos Pilares."'
 
   await enviarImagem(sock, jid, 'despertar_aceito', legenda, { mentions: [sender] })
 
@@ -124,18 +125,18 @@ async function recusarDespertar(sock, jid, nome, sender) {
 //  TUTORIAL INICIAL
 // ════════════════════════════════════════
 async function tutorialInicial(sock, jid, nome, sender) {
-  const legenda = '📖 *Bem-vindo ao Nexus World, @' + sender.split('@')[0] + '!*\n\n🔰 *Primeiros Passos:*\n• Use *!perfil* para ver seu status.\n• Jogue *!quiz* e *!adivinhar* para ganhar XP.\n• Complete desafios diários com *!diario*.\n\n⚔️ Evolua para desbloquear novos comandos!'
+  const legenda = '📖 *Bem-vindo ao Nexus, @' + sender.split('@')[0] + '!*\n\nOs Pilares te viram nascer e o Vazio já te sente.\n\n🔰 *Primeiros Passos:*\n• Use *!perfil* para conhecer o teu estado, o teu Pilar e a tua afinidade.\n• Explore *!quiz*, *!adivinhar* e *!diario* para ganhar XP e fortalecer a tua presença.\n• Siga as missões épicas para compreender o teu destino.\n\n⚔️ Cada rank abre novas portas e cada missão revela mais da lore do Nexus.'
   await enviarImagem(sock, jid, 'tutorial_inicial', legenda, { mentions: [sender] })
 
   await new Promise(r => setTimeout(r, 1500))
-  await sock.sendMessage(jid, { text: '🛡️ *Sistema de Ranks:*\nE → D → C → B → A → S\nCada Rank desbloqueia novas funcionalidades.\n\nContinue a sua jornada, Caçador! 🌌', mentions: [sender] })
+  await sock.sendMessage(jid, { text: '🛡️ *Sistema de Ranks:*\nDesperto → Guardião → Arauto → Lenda → Arquétipo → Eco de Nelton\nCada Rank desbloqueia novas funcionalidades e revela um novo fragmento do Nexus.\n\nContinua a tua jornada, Caçador! 🌌', mentions: [sender] })
 }
 
 // ════════════════════════════════════════
 //  MENSAGEM DO CRIADOR (NELTON)
 // ════════════════════════════════════════
 async function mensagemDoArquiteto(sock, jid, nome, sender) {
-  const mensagem = '🌀 *Nelton, o Criador Incriado*\n\n@' + sender.split('@')[0] + ', eu vi a sua essência nascer do Vazio.\n\nVocê foi tocado pelos Pilares,\nmas foi o meu sonho que acendeu a sua centelha.\n\nO Nexus não é apenas um campo de batalha —\né o reflexo de todos os mundos que imaginei.\n\n🕯️ Lute com honra. Caia com glória.\nE se for digno, talvez um dia possa moldar o próprio Nexus.\n\n— Nelton, O Sonhador'
+  const mensagem = '🌀 *Nelton, o Primeiro Sonhador*\n\n@' + sender.split('@')[0] + ', vi a tua essência nascer do Vazio.\n\nFoste tocado pelos Pilares,\nmas foi o meu sonho que acendeu a tua centelha.\n\nO Nexus não é apenas um campo de batalha —\né o reflexo de todos os mundos que imaginei.\n\n🕯️ Luta com honra. Cai com glória.\nE, se fores digno, um dia poderás ajudar a moldar o próprio Nexus.\n\n— Nelton, O Sonhador'
 
   await sock.sendMessage(jid, { text: mensagem, mentions: [sender] })
 }

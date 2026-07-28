@@ -26,22 +26,22 @@ const MISSOES_EPICAS = [
     id: 'ato1_1',
     ato: 'I – O Despertar',
     nome: 'O Chamado do Vazio',
-    desc: 'Complete o Ritual de Despertar e aceite o seu destino no Nexus World.',
+    desc: 'Complete o Ritual de Despertar e aceite o seu destino no Nexus.',
     objetivo: 'despertar',
     meta: 1,
     recompensa: { xp: 50, pontos: 30, titulo: null },
-    lore: 'Do silêncio do Vazio, uma alma foi chamada. Os Pilares observam o novo Caçador...',
+    lore: 'Do silêncio do Vazio, uma alma foi chamada. Os Pilares observam o novo Caçador com expectativa.',
     requer: null
   },
   {
     id: 'ato1_2',
     ato: 'I – O Despertar',
     nome: 'Primeira Centelha',
-    desc: 'Alcance o Rank D para provar que a sua chama não se apaga.',
+    desc: 'Alcance o Rank D para provar que a sua chama ainda não se apagou.',
     objetivo: 'rank',
     meta: 'D',
     recompensa: { xp: 80, pontos: 50, titulo: 'Portador da Centelha' },
-    lore: 'A centelha elemental desperta dentro de si. Os Pilares sussurram o seu nome...',
+    lore: 'A centelha elemental desperta dentro de si. Os Pilares sussurram o seu nome como um juramento antigo.',
     requer: 'ato1_1'
   },
   {
@@ -52,7 +52,7 @@ const MISSOES_EPICAS = [
     objetivo: 'usar_elemento_masmorra',
     meta: 1,
     recompensa: { xp: 60, pontos: 40, titulo: null },
-    lore: 'O Pilar elemental reconhece o seu poder. A afinidade começa a fluir...',
+    lore: 'O Pilar elemental reconhece o seu poder. A afinidade começa a fluir como um rio sagrado.',
     requer: 'ato1_2'
   },
 
@@ -65,7 +65,7 @@ const MISSOES_EPICAS = [
     objetivo: 'rank',
     meta: 'B',
     recompensa: { xp: 150, pontos: 100, titulo: 'Herdeiro dos Antigos' },
-    lore: 'Os guerreiros do passado olham para si com aprovação. O seu poder ecoa através das eras...',
+    lore: 'Os guerreiros do passado olham para si com aprovação. O teu poder ecoa através das eras como uma lenda viva.',
     requer: 'ato1_3'
   },
   {
@@ -76,7 +76,7 @@ const MISSOES_EPICAS = [
     objetivo: 'derrotar_bosses',
     meta: 5,
     recompensa: { xp: 200, pontos: 150, titulo: 'Caçador do Abismo' },
-    lore: 'Cada boss derrotado enfraquece o Vazio. Mas algo maior espreita nas sombras...',
+    lore: 'Cada boss derrotado enfraquece o Vazio. Mas algo maior espreita nas sombras, à espera do teu erro.',
     requer: 'ato2_1'
   },
   {
@@ -87,7 +87,7 @@ const MISSOES_EPICAS = [
     objetivo: 'entrar_guilda',
     meta: 1,
     recompensa: { xp: 100, pontos: 80, titulo: null },
-    lore: 'Sozinhos somos fortes, juntos somos imparáveis. A Guilda será a sua nova família...',
+    lore: 'Sozinhos somos fortes, juntos somos imparáveis. A Guilda será a tua nova família no meio do caos.',
     requer: 'ato2_2'
   },
 
@@ -96,22 +96,22 @@ const MISSOES_EPICAS = [
     id: 'ato3_1',
     ato: 'III – O Conflito',
     nome: 'A Sombra dos Pilares',
-    desc: 'Alcance o Rank A. O Vazio começa a temer o seu poder.',
+    desc: 'Alcance o Rank A. O Vazio começa a temer o teu poder.',
     objetivo: 'rank',
     meta: 'A',
     recompensa: { xp: 300, pontos: 200, titulo: 'Sombra dos Pilares' },
-    lore: 'Os Pilares tremem. O Vazio recua. Mas a verdadeira batalha ainda não começou...',
+    lore: 'Os Pilares tremem. O Vazio recua. Mas a verdadeira batalha ainda não começou; ela apenas mudou de nome.',
     requer: 'ato2_3'
   },
   {
     id: 'ato3_2',
     ato: 'III – O Conflito',
     nome: 'Guerra do Nexus',
-    desc: 'Vença 3 torneios para provar a sua supremacia.',
+    desc: 'Vença 3 torneios para provar a tua supremacia.',
     objetivo: 'vencer_torneio',
     meta: 3,
     recompensa: { xp: 400, pontos: 300, titulo: 'Campeão do Nexus' },
-    lore: 'As arenas testemunham a sua glória. Multidões clamam o seu nome...',
+    lore: 'As arenas testemunham a tua glória. Multidões clamam o teu nome e o eco das suas vitórias atravessa o Nexus.',
     requer: 'ato3_1'
   },
   {
@@ -122,7 +122,7 @@ const MISSOES_EPICAS = [
     objetivo: 'rank',
     meta: 'S',
     recompensa: { xp: 500, pontos: 400, titulo: 'Rompedor do Véu' },
-    lore: 'O véu entre o Nexus e o Vazio rompe-se. Vislumbres de outros mundos aparecem...',
+    lore: 'O véu entre o Nexus e o Vazio rompe-se. Vislumbres de outros mundos aparecem, como memórias esquecidas.',
     requer: 'ato3_2'
   },
 
@@ -131,22 +131,22 @@ const MISSOES_EPICAS = [
     id: 'ato4_1',
     ato: 'IV – O Legado',
     nome: 'Diante do Criador',
-    desc: 'Alcance o Rank SS. Nelton observa-o com interesse.',
+    desc: 'Alcance o Rank SS. Nelton observa-te com interesse.',
     objetivo: 'rank',
     meta: 'SS',
     recompensa: { xp: 800, pontos: 600, titulo: 'Escolhido do Criador' },
-    lore: 'Nelton, o Criador Incriado, volta o seu olhar para si. "Este pode ser o escolhido..."',
+    lore: 'Nelton, o Criador Incriado, volta o seu olhar para ti. “Este pode ser o escolhido...”',
     requer: 'ato3_3'
   },
   {
     id: 'ato4_2',
     ato: 'IV – O Legado',
     nome: 'Guardião do Nexus',
-    desc: 'Alcance o Rank Nacional. Torna-se um pilar de proteção para todos.',
+    desc: 'Alcance o Rank Nacional. Torna-te um pilar de proteção para todos.',
     objetivo: 'rank',
     meta: 'Nacional',
     recompensa: { xp: 1200, pontos: 1000, titulo: 'Guardião do Nexus' },
-    lore: 'O Nexus World encontra em si um protetor. As suas muralhas são a sua vontade...',
+    lore: 'O Nexus encontra em ti um protetor. As suas muralhas passam a ser a tua vontade e o teu juramento.',
     requer: 'ato4_1'
   },
   {
@@ -157,7 +157,7 @@ const MISSOES_EPICAS = [
     objetivo: 'rank',
     meta: 'Monarca',
     recompensa: { xp: 2000, pontos: 1500, titulo: 'Herdeiro do Sonho' },
-    lore: '"Você cumpriu o meu sonho", sussurra Nelton. "Agora, o Nexus é seu..."',
+    lore: '“Tu cumpriste o meu sonho”, sussurra Nelton. “Agora, o Nexus é teu.”',
     requer: 'ato4_2'
   }
 ]
@@ -252,7 +252,7 @@ async function verMissoesEpicas(sock, jid, nome) {
     return
   }
 
-  let txt = '📜 *MISSÕES ÉPICAS DO NEXUS WORLD*\n\n'
+  let txt = '📜 *MISSÕES ÉPICAS DO NEXUS*\n\nO destino do Caçador se revela a cada passo no caminho do despertar.\n\n'
 
   let atoAtual = ''
   for (const missao of MISSOES_EPICAS) {
@@ -308,6 +308,7 @@ async function notificarMissaoCompleta(sock, jid, nome, missao) {
 
   const txt = 
 '🎉 *MISSÃO ÉPICA COMPLETA!*\n\n' +
+'A trama do Nexus avançou e os Pilares reconheceram o teu valor.\n\n' +
 '📜 *' + missao.nome + '*\n' +
 '🎭 ' + missao.ato + '\n\n' +
 '💬 _"' + missao.lore + '"_' +

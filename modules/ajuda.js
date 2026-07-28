@@ -4,9 +4,9 @@ const { enviarHumano, enviarSequencia } = require('./humano')
 
 const menus = {
 
-  principal: `🤖 *AnimeBot — Menu Principal*
+  principal: `🤖 *Nexus Guide — Menu do Caçador*
 
-Olá! Sou o AnimeBot, o teu assistente de anime! 🎌
+Olá! Sou o teu guia no Nexus World, aqui para orientar os escolhidos na sua jornada. 🌌
 Escolhe uma categoria para ver os comandos:
 
 🎮 *!ajuda jogos* — Todos os jogos disponíveis
@@ -114,11 +114,11 @@ Inicia um torneio de clãs (interativo). Os representantes de cada clã lutam en
 Cada membro do clã vencedor recebe +80 XP e +60 pontos.
 Para definir o representante do clã: *!cla representante @membro*`,
 
-  social: `👥 *SOCIAL — Clãs, Casamento e Missões*
+  social: `👥 *SOCIAL — Guildas, Casamento e Missões*
 
-━━━━ ⚔️ CLÃS ━━━━
+━━━━ ⚔️ GUILDAS ━━━━
 *!criar-cla Akatsuki*
-Cria um clã com o nome que escolheres. Custa 100 pontos. O emblema é sorteado automaticamente.
+Cria uma guilda com o nome que escolheres. Custa 100 pontos. O emblema é sorteado automaticamente.
 
 *!entrar-cla Akatsuki*
 Junta-te a um clã existente. Só podes estar num clã de cada vez.

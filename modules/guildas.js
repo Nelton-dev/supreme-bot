@@ -32,17 +32,17 @@ async function criarGuilda(sock, jid, nome, nomeGuilda) {
   // Verifica se já pertence a uma guilda
   const guildaAtual = Object.entries(guildas).find(([_, g]) => g.membros.includes(nome))
   if (guildaAtual) {
-    await sock.sendMessage(jid, { text: '⚠️ Você já pertence à guilda *' + guildaAtual[1].nome + '*! Saia primeiro com *!sair-guilda*' })
+    await sock.sendMessage(jid, { text: '⚠️ Já te enlaças a uma guilda do Nexus: *' + guildaAtual[1].nome + '*! Sai primeiro com *!sair-guilda* para seguir outro caminho.' })
     return
   }
 
   if (guildas[nomeGuilda]) {
-    await sock.sendMessage(jid, { text: '❌ Já existe uma guilda com o nome *' + nomeGuilda + '*!' })
+    await sock.sendMessage(jid, { text: '❌ Já existe uma guilda com o nome *' + nomeGuilda + '* no mapa do Nexus!' })
     return
   }
 
   if ((user.pontos || 0) < 200) {
-    await sock.sendMessage(jid, { text: '❌ Precisas de *200 pontos* para criar uma guilda!\nTens: ' + (user.pontos || 0) + ' pontos.' })
+    await sock.sendMessage(jid, { text: '❌ Precisas de *200 pontos* para forjar uma guilda!\nTens: ' + (user.pontos || 0) + ' pontos.' })
     return
   }
 
@@ -64,7 +64,7 @@ async function criarGuilda(sock, jid, nome, nomeGuilda) {
   salvarGuildas(guildas)
 
   await sock.sendMessage(jid, {
-    text: emblema + ' *GUILDA CRIADA!*\n\n🏰 Nome: *' + nomeGuilda + '*\n👑 Líder: ' + nome + '\n📅 Criado em: ' + guildas[nomeGuilda].criado + '\n\n💡 Membros podem entrar com:\n*!entrar-guilda ' + nomeGuilda + '*'
+    text: emblema + ' *GUILDA FORJADA NO NEXUS!*\n\n🏰 Nome: *' + nomeGuilda + '*\n👑 Líder: ' + nome + '\n📅 Criado em: ' + guildas[nomeGuilda].criado + '\n\n🛡️ Uma aliança nasceu para enfrentar o Vazio.\n💡 Membros podem entrar com:\n*!entrar-guilda ' + nomeGuilda + '*'
   })
 }
 
@@ -77,12 +77,12 @@ async function entrarGuilda(sock, jid, nome, nomeGuilda) {
 
   const guildaAtual = Object.entries(guildas).find(([_, g]) => g.membros.includes(nome))
   if (guildaAtual) {
-    await sock.sendMessage(jid, { text: '⚠️ Já pertences à guilda *' + guildaAtual[1].nome + '*! Sai com *!sair-guilda*' })
+    await sock.sendMessage(jid, { text: '⚠️ Já pertenceste a uma guilda do Nexus: *' + guildaAtual[1].nome + '*! Sai com *!sair-guilda* para seguir outro destino.' })
     return
   }
 
   if (!guildas[nomeGuilda]) {
-    await sock.sendMessage(jid, { text: '❌ Guilda *' + nomeGuilda + '* não encontrada!' })
+    await sock.sendMessage(jid, { text: '❌ A guilda *' + nomeGuilda + '* não foi encontrada no mapa do Nexus!' })
     return
   }
 
@@ -90,7 +90,7 @@ async function entrarGuilda(sock, jid, nome, nomeGuilda) {
   salvarGuildas(guildas)
 
   await sock.sendMessage(jid, {
-    text: guildas[nomeGuilda].emblema + ' *' + nome + '* entrou na guilda *' + nomeGuilda + '*!\n👥 Membros: ' + guildas[nomeGuilda].membros.length
+    text: guildas[nomeGuilda].emblema + ' *' + nome + '* juntou-se à guilda *' + nomeGuilda + '*!\n🛡️ O Vazio agora terá de medir forças com uma aliança.\n👥 Membros: ' + guildas[nomeGuilda].membros.length
   })
 }
 
@@ -102,14 +102,14 @@ async function sairGuilda(sock, jid, nome) {
   const entrada = Object.entries(guildas).find(([_, g]) => g.membros.includes(nome))
 
   if (!entrada) {
-    await sock.sendMessage(jid, { text: '⚠️ Você não pertence a nenhuma guilda!' })
+    await sock.sendMessage(jid, { text: '⚠️ Ainda não te enlaças a nenhuma guilda do Nexus!' })
     return
   }
 
   const [nomeGuilda, guilda] = entrada
 
   if (guilda.lider === nome && guilda.membros.length > 1) {
-    await sock.sendMessage(jid, { text: '👑 És o líder! Transfira a liderança primeiro.' })
+    await sock.sendMessage(jid, { text: '👑 És o líder! Transfere a liderança primeiro para não deixar a aliança em ruínas.' })
     return
   }
 
@@ -118,11 +118,11 @@ async function sairGuilda(sock, jid, nome) {
 
   if (guilda.membros.length === 0) {
     delete guildas[nomeGuilda]
-    await sock.sendMessage(jid, { text: '🏚️ Guilda *' + nomeGuilda + '* dissolvida por falta de membros.' })
+    await sock.sendMessage(jid, { text: '🏚️ A guilda *' + nomeGuilda + '* foi dissolvida por falta de membros.' })
   } else {
     if (guilda.lider === nome) guilda.lider = guilda.membros[0]
     salvarGuildas(guildas)
-    await sock.sendMessage(jid, { text: '👋 *' + nome + '* saiu da guilda *' + nomeGuilda + '*.' })
+    await sock.sendMessage(jid, { text: '👋 *' + nome + '* abandonou a guilda *' + nomeGuilda + '*.' })
   }
 
   salvarGuildas(guildas)
@@ -136,12 +136,12 @@ async function verGuildas(sock, jid) {
   const lista = Object.values(guildas)
 
   if (!lista.length) {
-    await sock.sendMessage(jid, { text: '🏚️ Nenhuma guilda criada ainda!\nCria a tua com *!criar-guilda <nome>* (200 pontos)' })
+    await sock.sendMessage(jid, { text: '🏚️ Nenhuma guilda foi forjada ainda no Nexus!\nCria a tua com *!criar-guilda <nome>* (200 pontos)' })
     return
   }
 
   const sorted = lista.sort((a, b) => b.xp - a.xp)
-  let txt = '⚔️ *GUILDAS DO NEXUS WORLD* ⚔️\n\n'
+  let txt = '⚔️ *GUILDAS DO NEXUS WORLD* ⚔️\n\nAs alianças mais fortes carregam o peso da era.\n\n'
   sorted.forEach((g, i) => {
     txt += (i + 1) + '. ' + g.emblema + ' *' + g.nome + '*\n   👑 ' + g.lider + ' | 👥 ' + g.membros.length + ' membros | ⭐ ' + g.xp + ' XP | 🏆 ' + (g.vitoriasGuerra || 0) + ' vitórias\n\n'
   })
@@ -157,12 +157,12 @@ async function verGuilda(sock, jid, nomeGuilda) {
   const g = guildas[nomeGuilda]
 
   if (!g) {
-    await sock.sendMessage(jid, { text: '❌ Guilda *' + nomeGuilda + '* não encontrada!' })
+    await sock.sendMessage(jid, { text: '❌ A guilda *' + nomeGuilda + '* não foi encontrada no mapa do Nexus!' })
     return
   }
 
   await sock.sendMessage(jid, {
-    text: g.emblema + ' *GUILDA ' + g.nome.toUpperCase() + '*\n\n👑 Líder: ' + g.lider + '\n👥 Membros (' + g.membros.length + '):\n' + g.membros.map(m => '  • ' + m).join('\n') + '\n⭐ XP: ' + g.xp + '\n🏅 Nível: ' + g.nivel + '\n🏆 Vitórias em Guerra: ' + (g.vitoriasGuerra || 0) + '\n📅 Criado: ' + g.criado
+    text: g.emblema + ' *GUILDA ' + g.nome.toUpperCase() + '*\n\n👑 Líder: ' + g.lider + '\n👥 Membros (' + g.membros.length + '):\n' + g.membros.map(m => '  • ' + m).join('\n') + '\n⭐ XP da Guilda: ' + g.xp + '\n🏅 Nível: ' + g.nivel + '\n🏆 Vitórias em Guerra: ' + (g.vitoriasGuerra || 0) + '\n📅 Criado: ' + g.criado
   })
 }
 

@@ -15,14 +15,16 @@ async function boasVindasAuto(sock, jid, participants, action) {
     for (const participantJid of jids) {
       const nome = participantJid.split('@')[0]
       if (action === 'add') {
-        const mensagem = `🌸 Bem-vindo(a) ao grupo, @${nome}!`
+        const mensagem = `� Bem-vindo(a) ao Nexus, @${nome}!
+O Vazio sentiu o teu despertar e os Pilares te observam.
+Agora és mais um Caçador a caminho das guildas, arenas e missões da era.`
         await sock.sendMessage(jid, {
           text: mensagem,
           mentions: [participantJid]
         })
       } else if (action === 'remove') {
         await sock.sendMessage(jid, {
-          text: `👋 ${nome} saiu do grupo.`
+          text: `🌫️ ${nome} afastou-se do círculo do grupo, como um eco perdido no Vazio.`
         })
       }
     }

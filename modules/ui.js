@@ -7,6 +7,21 @@ const {
 } = require('./imagens')
 const { getUser, RANKS } = require('../db')
 
+function formatarPilar(elemento) {
+  const mapa = {
+    ignis: 'Ignis',
+    aquor: 'Aquor',
+    petra: 'Petra',
+    aeris: 'Aeris',
+    lux: 'Lux',
+    umbra: 'Umbra',
+    fulgor: 'Fulgor',
+    tempus: 'Tempus',
+    animus: 'Animus'
+  }
+  return mapa[elemento] || elemento || 'Nenhum'
+}
+
 // ════════════════════════════════════════
 //  PERFIL ATUALIZADO (com rank do sistema)
 // ════════════════════════════════════════
@@ -30,16 +45,19 @@ async function mostrarPerfil(sock, jid, nome) {
   const caption = 
 `👤 *${nome}*
 🏅 ${user.titulo || 'Novato'}
-🌌 *Rank:* ${user.titulo_rank || 'Caçador Rank E'}
+🌌 *Rank:* ${user.titulo_rank || 'Desperto'}
 ⭐ Nível do Rank: ${user.nivel_rank || 1}
 📊 Progresso: [${barra}] ${progresso}% (${xpAtual}/${xpProx} XP)
+🕯️ Pilar: ${formatarPilar(user.elemento)}
+⚖️ Moralidade: ${user.moralidade || 0}
 ━━━━━━━━━━━━━━━━━━━
 💰 Pontos: ${user.pontos || 0}
 ⚔️ Ataque: ${user.ataque || 10}
 ❤️ Vida: ${user.vida || 100}
 🏆 Vitórias: ${user.vitorias || 0}
 ⚡ Habilidade: ${user.habilidade_ativa || 'Nenhuma'}
-🐾 Pet: ${user.pet_ativo || 'Nenhum'}`
+🐾 Pet: ${user.pet_ativo || 'Nenhum'}
+🌟 O seu caminho no Nexus continua a ser escrito.`
 
   // Se já tem avatar, envia diretamente com a nova legenda
   if (user.avatar && Buffer.isBuffer(user.avatar) && user.avatar.length > 500) {
