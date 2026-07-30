@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personalizar Avatar — Nexus World</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+    :root { --red: #e94560; --gold: #f0a500; --bg: #07080d; --surface: #0e0f1a; --surface2: #141528; --border: rgba(233,69,96,0.25); --text: #e8e8f0; --muted: #6b6d8a; --green: #22c55e; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 500px; width: 90%; padding: 30px 20px; text-align: center; }
+    h1 { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; margin-bottom: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .avatar-preview { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid var(--red); margin: 0 auto 20px; display: block; background: var(--surface2); }
+    .btn { display: inline-block; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 600; border: none; margin: 8px; transition: all .2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--red), #c73652); color: #fff; }
+    .btn-danger { background: rgba(192,57,43,0.2); color: #e74c3c; border: 1px solid rgba(192,57,43,0.3); }
+    .btn:hover { opacity: 0.85; }
+    .upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 30px; margin: 16px 0; cursor: pointer; }
+    .upload-area:hover { border-color: var(--red); }
+    .upload-area p { color: var(--muted); font-size: 0.85rem; }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; font-size: 0.85rem; display: none; z-index: 100; }
+    #toast.show { display: block; animation: slideIn .3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    input[type="file"] { display: none; }
+    .back-link { color: var(--muted); text-decoration: none; font-size: 0.85rem; display: block; margin-top: 16px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎨 Personalizar Avatar</h1>
+  <div class="card">
+    <img class="avatar-preview" id="preview" alt="Avatar atual">
+    <p style="color:var(--muted);margin-bottom:10px;font-size:0.85rem">Aparece no comando <code>!perfil</code></p>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <p>📁 Clique para escolher uma imagem</p>
+      <p style="font-size:0.7rem">JPG, PNG, GIF (máx 5MB)</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" onchange="previewImage(event)">
+    <button class="btn btn-primary" onclick="salvarAvatar()">💾 Salvar</button>
+    <button class="btn btn-danger" onclick="removerAvatar()">🗑️ Remover</button>
+    <a class="back-link" id="backLink" href="#">← Voltar ao Perfil</a>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const nome = decodeURIComponent(window.location.pathname.split('/')[2])
+document.getElementById('backLink').href = '/cacador/' + encodeURIComponent(nome)
+let imagemBase64 = null
+function mostrarToast(m, d = 3000) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), d) }
+async function carregar() { document.getElementById('preview').src = '/api/cacador/' + encodeURIComponent(nome) + '/avatar-img?' + Date.now() }
+carregar()
+function previewImage(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) { mostrarToast('❌ Imagem muito grande! Máx 5MB.'); return }
+  const reader = new FileReader()
+  reader.onload = (e) => { document.getElementById('preview').src = e.target.result; imagemBase64 = e.target.result }
+  reader.readAsDataURL(file)
+}
+async function salvarAvatar() {
+  if (!imagemBase64) { mostrarToast('⚠️ Escolha uma imagem!'); return }
+  const res = await fetch('/api/cacador/' + encodeURIComponent(nome) + '/avatar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imagem: imagemBase64 }) })
+  const data = await res.json()
+  mostrarToast(data.ok ? '✅ Avatar atualizado!' : '❌ ' + data.erro)
+}
+async function removerAvatar() {
+  if (!confirm('Remover avatar? Será gerado um novo automaticamente.')) return
+  await fetch('/api/cacador/' + encodeURIComponent(nome) + '/avatar', { method: 'DELETE' })
+  mostrarToast('✅ Removido!')
+  imagemBase64 = null
+  carregar()
+}
+</script>
+</body>
+</html>

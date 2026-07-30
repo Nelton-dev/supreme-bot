@@ -27,7 +27,7 @@ async function verificarDespertar(sock, jid, nome, sender) {
 //  INICIAR RITUAL
 // ════════════════════════════════════════
 async function iniciarRitual(sock, jid, nome, sender) {
-  const legenda = '🌌 *SISTEMA – NEXUS WORLD*\n\nUma presença inesperada atravessa o silêncio do Vazio: @' + sender.split('@')[0] + '\n\nO Conselho dos Caçadores convoca-te para a *Despertação*, onde a centelha de um Pilar pode ser reconhecida.\n\nResponda *ACEITAR* ou *RECUSAR* para selar o teu lugar entre os Pilares e o destino do Nexus.\n⏳ 5 minutos para decidir'
+  const legenda = '🌌 *SISTEMA – NEXUS WORLD*\n\nUma presença inesperada atravessa o silêncio do Vazio: @' + sender.split('@')[0] + '\n\nO Conselho dos Caçadores convoca-te para o ritual do *Despertar*, onde a centelha de um Pilar pode ser reconhecida.\n\nResponda *ACEITAR* ou *RECUSAR* para selar o teu lugar entre os Pilares e o destino do Nexus.\n⏳ 5 minutos para decidir'
 
   await enviarImagem(sock, jid, 'ritual_despertar', legenda, { mentions: [sender] })
 

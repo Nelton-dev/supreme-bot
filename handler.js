@@ -97,8 +97,10 @@ module.exports = function iniciarHandler(sock) {
 
   // ─── ENTRADA / SAÍDA DE MEMBROS ────────────────────────────
   sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
-    if (action === 'add') await boasVindasAuto(sock, id, participants, 'add')
-    if (action === 'remove') await boasVindasAuto(sock, id, participants, 'remove')
+    // Converte participantes para array de strings JID (garante que split funcione)
+    const participantesJids = participants.map(p => typeof p === 'string' ? p : p.id);
+    if (action === 'add') await boasVindasAuto(sock, id, participantesJids, 'add')
+    if (action === 'remove') await boasVindasAuto(sock, id, participantesJids, 'remove')
   })
 
   sock.ev.on('messages.upsert', async ({ messages }) => {

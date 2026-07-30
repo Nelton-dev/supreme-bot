@@ -5,17 +5,19 @@ const { getUser } = require('../db')
 // ════════════════════════════════════════
 async function boasVindasAuto(sock, jid, participants, action) {
   try {
-    // O Baileys envia participants como array de objetos { jid }
+    // O handler já nos envia um array de strings (JIDs), mas por segurança normalizamos:
     const jids = Array.isArray(participants)
-      ? participants.map(p => p.jid || p).filter(j => j)
+      ? participants.map(p => typeof p === 'string' ? p : (p.id || p.jid || p)).filter(Boolean)
       : typeof participants === 'string'
         ? [participants]
         : []
 
     for (const participantJid of jids) {
-      const nome = participantJid.split('@')[0]
+      // Extrai o número (username) do JID
+      const nome = participantJid.split('@')[0] || 'membro'
+
       if (action === 'add') {
-        const mensagem = `� Bem-vindo(a) ao Nexus, @${nome}!
+        const mensagem = `👋 Bem-vindo(a) ao Nexus, @${nome}!
 O Vazio sentiu o teu despertar e os Pilares te observam.
 Agora és mais um Caçador a caminho das guildas, arenas e missões da era.`
         await sock.sendMessage(jid, {
@@ -182,7 +184,7 @@ async function toggleBoasVindas(sock, jid, msg, estado) {
 }
 
 async function configBoasVindas(sock, jid, texto, msg) {
-  // Não está implementado armazenamento dinâmico; mantém a funcionalidade básica
+  // Futura implementação: salvar mensagem personalizada no banco
   await sock.sendMessage(jid, { text: '✅ Mensagem de boas-vindas atualizada (funcionalidade em breve).' })
 }
 
