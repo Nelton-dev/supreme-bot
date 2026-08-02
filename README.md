@@ -226,7 +226,7 @@ anime-bot/
 | `!par A C` | Revelar cartas na memória |
 | `!akinator` | IA adivinha o teu personagem |
 | `!sim` / `!nao` | Responder ao Akinator |
-| `!frase` | Completar frase de anime |
+| `!frasejogo` | Completar frase de anime |
 | `!vd verdade` / `!vd desafio` | Verdade ou desafio |
 | `!vdia verdade` / `!vdia desafio` | Verdade/desafio com IA |
 | `!historia <tema>` | História colaborativa com IA |
@@ -540,7 +540,7 @@ Comando Descrição
 !par A C Revelar cartas na memória
 !akinator IA adivinha o teu personagem
 !sim / !nao Responder ao Akinator
-!frase Completar frase de anime
+!frasejogo Completar frase de anime
 !vd verdade / !vd desafio Verdade ou desafio
 !vdia verdade / !vdia desafio Verdade/desafio com IA
 !historia <tema> História colaborativa com IA

@@ -425,10 +425,10 @@ if (texto === '!hall') return verHallFama(sock, jid)
     if (texto.startsWith('!par ')) return tentarPar(sock, jid, texto.split(' ')[1], texto.split(' ')[2], nome)
 
     if (texto === '!akinator') return iniciarAkinator(sock, jid)
-    if (texto === '!sim' || texto === '!nao') return responderAkinator(sock, jid, texto.replace('!', ''), nome)
+        if (texto === '!sim' || texto === '!nao') return responderAkinator(sock, jid, texto.replace('!', ''), nome)
 
-    if (texto === '!frase') return iniciarFrase(sock, jid)
-    if (await verificarFrase(sock, jid, texto, nome)) return
+        if (texto === '!frasejogo') return iniciarFrase(sock, jid)
+        if (await verificarFrase(sock, jid, texto, nome)) return
 
     // ─── CLÃS ────────────────────────────────────────────────
     if (texto.startsWith('!criar-cla ')) return criarCla(sock, jid, nome, raw.split(' ').slice(1).join(' '))
