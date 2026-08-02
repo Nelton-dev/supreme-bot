@@ -31,7 +31,7 @@ const {
 } = require('./modules/torneio')
 const { verLoja, verLojaTudo, comprar, equiparHabilidade, equiparPet, usarPocao } = require('./modules/loja')
 const { agendarNotificacoes } = require('./modules/agendador')
-const { responderIA, limparHistorico } = require('./modules/ia')
+const { chatIA, limparMemoria } = require('./modules/assistente') // antigo import de ./modules/ia removido (código morto)
 const { comandoImagem } = require('./modules/imagem')
 const { gerarMusica, gerarVoz, fraseFamosa } = require('./modules/audio')
 const { buscarAnime, buscarPersonagem, topAnimes, animeTemporada } = require('./modules/anilist')
