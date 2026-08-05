@@ -1,4 +1,26 @@
 const { getUser } = require('../db')
+const fs = require('fs')
+
+const ADMIN_STATE_PATH = './data/admin-state.json'
+
+// ─── Persistência ─────────────────────────────────────────────
+function carregarAdminState() {
+  try {
+    if (!fs.existsSync(ADMIN_STATE_PATH)) return { antilinkAtivo: false, boasVindasAtivas: true, palavrasProibidas: [] }
+    return JSON.parse(fs.readFileSync(ADMIN_STATE_PATH, 'utf8'))
+  } catch {
+    return { antilinkAtivo: false, boasVindasAtivas: true, palavrasProibidas: [] }
+  }
+}
+
+function salvarAdminState() {
+  fs.writeFileSync(ADMIN_STATE_PATH, JSON.stringify({ antilinkAtivo, boasVindasAtivas, palavrasProibidas }, null, 2))
+}
+
+const state = carregarAdminState()
+let antilinkAtivo = state.antilinkAtivo
+let boasVindasAtivas = state.boasVindasAtivas
+let palavrasProibidas = state.palavrasProibidas
 
 // ════════════════════════════════════════
 //  BOAS-VINDAS AUTOMÁTICAS
@@ -112,10 +134,10 @@ async function abrirGrupo(sock, jid, msg) {
 // ════════════════════════════════════════
 //  ANTILINK
 // ════════════════════════════════════════
-let antilinkAtivo = false
 
 async function toggleAntilink(sock, jid, msg, estado) {
   antilinkAtivo = estado
+  salvarAdminState()
   await sock.sendMessage(jid, { text: estado ? '🔗 Antilink ATIVADO. Links serão bloqueados.' : '🔗 Antilink DESATIVADO.' })
 }
 
@@ -131,10 +153,10 @@ async function verificarLink(sock, jid, texto, msg) {
 // ════════════════════════════════════════
 //  FILTRO DE PALAVRAS
 // ════════════════════════════════════════
-let palavrasProibidas = []
 
 async function adicionarPalavra(sock, jid, palavra, msg) {
   palavrasProibidas.push(palavra.toLowerCase())
+  salvarAdminState()
   await sock.sendMessage(jid, { text: `🚫 Palavra "${palavra}" adicionada ao filtro.` })
 }
 
@@ -174,10 +196,10 @@ async function infoGrupo(sock, jid) {
 // ════════════════════════════════════════
 //  CONFIGURAR BOAS-VINDAS
 // ════════════════════════════════════════
-let boasVindasAtivas = true
 
 async function toggleBoasVindas(sock, jid, msg, estado) {
   boasVindasAtivas = estado
+  salvarAdminState()
   await sock.sendMessage(jid, { text: estado ? '👋 Boas-vindas ATIVADAS.' : '👋 Boas-vindas DESATIVADAS.' })
 }
 

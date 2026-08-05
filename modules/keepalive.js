@@ -48,15 +48,22 @@ function iniciarKeepAlive(sockInstance, reconectarFn) {
   return { pingInterval, watchdogInterval }
 }
 
-// Captura erros globais para evitar crash
-process.on('uncaughtException', (err) => {
-  console.error('❌ Erro não capturado:', err.message)
-  // Não termina o processo — PM2 cuida do restart se necessário
-})
+// Teardown ordenado em caso de erro fatal — loga, fecha o socket e sai com código 1
+function fatalTeardown(reason, err) {
+  try {
+    console.error(`\n💥 ${reason}:`, err?.stack || err?.message || err)
+  } catch {}
+  try {
+    if (sock) {
+      try { sock.end() } catch {}
+    }
+  } catch {}
+  // Pequena janela para flush de logs antes de sair
+  setTimeout(() => process.exit(1), 250)
+}
 
-process.on('unhandledRejection', (err) => {
-  console.error('❌ Rejeição não tratada:', err?.message || err)
-})
+process.on('uncaughtException', (err) => fatalTeardown('Erro não capturado', err))
+process.on('unhandledRejection', (err) => fatalTeardown('Rejeição não tratada', err))
 
 // Sinal de saúde — PM2 usa isto para saber se o bot está vivo
 process.on('SIGINT', () => {

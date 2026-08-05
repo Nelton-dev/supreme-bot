@@ -31,7 +31,6 @@ const {
 } = require('./modules/torneio')
 const { verLoja, verLojaTudo, comprar, equiparHabilidade, equiparPet, usarPocao } = require('./modules/loja')
 const { agendarNotificacoes } = require('./modules/agendador')
-const { chatIA, limparMemoria } = require('./modules/assistente') // antigo import de ./modules/ia removido (código morto)
 const { comandoImagem } = require('./modules/imagem')
 const { gerarMusica, gerarVoz, fraseFamosa } = require('./modules/audio')
 const { buscarAnime, buscarPersonagem, topAnimes, animeTemporada } = require('./modules/anilist')
@@ -131,7 +130,6 @@ module.exports = function iniciarHandler(sock) {
     if (!despertou) {
       const respondeu = await processarRespostaDespertar(sock, jid, nome, raw, sender)
       if (!respondeu) return
-      return
     }
 
     // ─── MASMORRA DIÁRIA ────────────────────────────────────
