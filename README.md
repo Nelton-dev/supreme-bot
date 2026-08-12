@@ -1,16 +1,8 @@
-<<<<<<< HEAD
 ---
-
+ 
 ```markdown
 <div align="center">
-  <img src="https://i.imgur.com/placeholder-banner.png" alt="AnimeBot + Nexus World" width="100%">
-=======
------
-
-```markdown
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Nelton-dev/supreme-bot/master/assets/1_Ticyy_k3xxjhO6lVcVTYMw.png" alt="AnimeBot + Nexus World" width="100%">
->>>>>>> origin/master
+  <img src="https://raw.githubusercontent.com/Nelton-dev/supreme-bot/main/assets/1_Ticyy_k3xxjhO6lVcVTYMw.png" alt="AnimeBot + Nexus World" width="100%">
   
   # 🤖 AnimeBot — WhatsApp Bot de Anime + RPG Nexus World
   
@@ -74,8 +66,9 @@
 
 ## 🚀 Instalação
 
+```
+
 ### Método Rápido (Termux)
-<<<<<<< HEAD
 
 ```bash
 # 1. Atualizar pacotes
@@ -88,20 +81,6 @@ pkg install nodejs-lts git -y
 git clone https://github.com/Nelton-dev/supreme-bot.git
 cd supreme-bot
 
-=======
-
-```bash
-# 1. Atualizar pacotes
-pkg update && pkg upgrade -y
-
-# 2. Instalar Node.js
-pkg install nodejs-lts git -y
-
-# 3. Clonar repositório
-git clone https://github.com/teu-usuario/anime-bot.git
-cd anime-bot
-
->>>>>>> origin/master
 # 4. Instalar dependências
 yarn install
 
@@ -110,7 +89,6 @@ cp .env.example .env
 nano .env
 
 # 6. Iniciar bot
-<<<<<<< HEAD
 node start.js
 ```
 
@@ -119,33 +97,19 @@ node start.js
 ```bash
 git clone https://github.com/Nelton-dev/supreme-bot.git
 cd supreme-bot
-=======
-node connect.js
-```
 
-Método Alternativo (npm)
-
-```bash
-git clone https://github.com/teu-usuario/anime-bot.git
-cd anime-bot
->>>>>>> origin/master
 npm install
 cp .env.example .env
 npm start
 ```
 
-<<<<<<< HEAD
 > ⚠️ **Nota:** O bot vai gerar um QR Code no terminal. Escaneie com seu WhatsApp Business para conectar.
-=======
-⚠️ Nota: O bot vai gerar um QR Code no terminal. Escaneie com seu WhatsApp Business para conectar.
->>>>>>> origin/master
 
 ---
 
 🔑 Chaves de API (todas grátis)
 
 <div align="center">
-<<<<<<< HEAD
   
 | API | Link | Para quê | Limite Grátis |
 |-----|------|----------|---------------|
@@ -156,17 +120,6 @@ npm start
 </div>
 
 ### Configuração do `.env`
-=======
-
-API Link Para quê Limite Grátis
-Groq console.groq.com Chat IA principal 30 req/min
-Mistral console.mistral.ai Fallback de IA 10 req/min
-Hugging Face huggingface.co/settings/tokens Imagens e áudio Ilimitado (rate limit)
-
-</div>
-
-Configuração do .env
->>>>>>> origin/master
 
 ```env
 # Chaves de API
@@ -192,11 +145,7 @@ ADMIN_NUMBERS=5511999999999,5511988888888
 
 ```
 anime-bot/
-<<<<<<< HEAD
 ├── start.js              # 🚀 Entrada — QR Code ou Pairing Code
-=======
-├── connect.js              # 🚀 Entrada — QR Code ou Pairing Code
->>>>>>> origin/master
 ├── handler.js              # 📨 Handler de todas as mensagens
 ├── db.js                   # 💾 Banco de dados de utilizadores
 │
@@ -254,7 +203,6 @@ anime-bot/
 ```
 
 </details>
-<<<<<<< HEAD
 
 ---
 
@@ -278,7 +226,7 @@ anime-bot/
 | `!par A C` | Revelar cartas na memória |
 | `!akinator` | IA adivinha o teu personagem |
 | `!sim` / `!nao` | Responder ao Akinator |
-| `!frase` | Completar frase de anime |
+| `!frasejogo` | Completar frase de anime |
 | `!vd verdade` / `!vd desafio` | Verdade ou desafio |
 | `!vdia verdade` / `!vdia desafio` | Verdade/desafio com IA |
 | `!historia <tema>` | História colaborativa com IA |
@@ -405,8 +353,6 @@ anime-bot/
 | `!infogrupo` | Info do grupo |
 | `!resetuso <nome>` | Reset limite de IA (admin) |
 | `!statusapi` | Ver estado das APIs |
-=======
->>>>>>> origin/master
 
 </div>
 
@@ -594,7 +540,7 @@ Comando Descrição
 !par A C Revelar cartas na memória
 !akinator IA adivinha o teu personagem
 !sim / !nao Responder ao Akinator
-!frase Completar frase de anime
+!frasejogo Completar frase de anime
 !vd verdade / !vd desafio Verdade ou desafio
 !vdia verdade / !vdia desafio Verdade/desafio com IA
 !historia <tema> História colaborativa com IA
@@ -898,7 +844,6 @@ pm2 startup
 ```
 
 </div>
-<<<<<<< HEAD
 
 ---
 
@@ -924,8 +869,6 @@ node dashboard/server.js
 # Acessar
 http://localhost:3000
 ```
-=======
->>>>>>> origin/master
 
 ---
 
@@ -933,7 +876,6 @@ http://localhost:3000
 
 <div align="center">
 
-<<<<<<< HEAD
 | Função | Comando | Limite | Reseta |
 |--------|---------|--------|--------|
 | Chat IA | `!ia` | 20/dia | 🌙 Meia-noite |
@@ -947,25 +889,6 @@ http://localhost:3000
 </div>
 
 > 💡 **Dica:** Use `!meuuso` para ver seu uso diário.
-=======
-Funcionalidade Descrição
-📊 Ranking Ver top 10 em tempo real
-📈 Estatísticas Dados do grupo e utilizadores
-✉️ Mensagens Enviar mensagens ao grupo
-👥 Gestão Gerir jogadores (reset, remover)
-📜 Logs Logs em tempo real
-⚔️ Nexus 🆕 Ver Caçadores ativos, eventos e estatísticas RPG
-
-</div>
-
-```bash
-# Iniciar painel
-node dashboard/server.js
-
-# Acessar
-http://localhost:3000
-```
->>>>>>> origin/master
 
 ---
 
@@ -1005,32 +928,18 @@ git push -u origin main
 
 <div align="center">
 
-<<<<<<< HEAD
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
-[![Issues](https://img.shields.io/badge/Issues-Report-red?style=for-the-badge)](https://github.com/teu-usuario/anime-bot/issues)
-=======
-https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge
-https://img.shields.io/badge/Issues-Report-red?style=for-the-badge
->>>>>>> origin/master
+[![Issues](https://img.shields.io/badge/Issues-Report-red?style=for-the-badge)](https://github.com/Nelton-dev/supreme-bot/issues)
 
 </div>
 
 Pull requests são bem-vindos! Para grandes mudanças, abra uma issue primeiro para discutir o que queres alterar.
 
-<<<<<<< HEAD
 **Como contribuir:**
 1. Fork o projeto
 2. Crie sua branch (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add: AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
-=======
-Como contribuir:
-
-1. Fork o projeto
-2. Crie sua branch (git checkout -b feature/AmazingFeature)
-3. Commit suas mudanças (git commit -m 'Add: AmazingFeature')
-4. Push para a branch (git push origin feature/AmazingFeature)
->>>>>>> origin/master
 5. Abra um Pull Request
 
 ---
@@ -1039,45 +948,29 @@ Como contribuir:
 
 <div align="center">
 
-<<<<<<< HEAD
  NELTON DEV © 2026 — **Usa à vontade!** 🚀
 
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-=======
-Nelton Dev © 2024 — Usa à vontade! 🚀
-
-https://img.shields.io/badge/License-MIT-blue?style=for-the-badge
->>>>>>> origin/master
 
 </div>
 
 ---
 
 <div align="center">
-<<<<<<< HEAD
   
 ## ⭐ Mostre seu apoio
-=======
-
-⭐ Mostre seu apoio
->>>>>>> origin/master
 
 Se este projeto te ajudou, dê uma ⭐ no GitHub!
 
 ---
 
-<<<<<<< HEAD
 **Feito com ❤️ para a comunidade de WhatsApp e RPG**
-=======
-Feito com ❤️ para a comunidade de WhatsApp e RPG
->>>>>>> origin/master
 
 </div>
 ```
 
 ---
 
-<<<<<<< HEAD
 ## 🎯 Características Interativas do README
 
 | Elemento | Descrição |
@@ -1094,21 +987,3 @@ Feito com ❤️ para a comunidade de WhatsApp e RPG
 | **Contribuição** | Guia claro para contribuidores |
 
 ---
-=======
-🎯 Características Interativas do README
-
-|Elemento | Descrição|
-|---------|----------|
-|**Badges** | Status do projeto, versões, licença
-|**Banner** | Espaço para logo do bot
-|**Índice** | Navegação rápida entre seções
-|**Tabelas** | Dados organizados visualmente
-|**Collapsible** | Sections Comandos RPG em seção retrátil
-|**Emojis** | Identificação visual de cada seção
-|**Divisores** | Separação clara entre seções
-|**Código Formatado** |Comandos e exemplos coloridos
-|**Links** | Navegação entre seções do README
-|**Contribuição** | Guia claro para contribuidores
-
----
->>>>>>> origin/master

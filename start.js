@@ -78,6 +78,30 @@ async function iniciar() {
   })
 }
 
-process.on('uncaughtException', err => console.error('Erro:', err.message))
-process.on('unhandledRejection', err => console.error('Rejeição:', err?.message || err))
+// Teardown ordenado em caso de erro fatal — loga, fecha recursos e sai com código 1
+async function fatalTeardown(reason, err) {
+  try {
+    console.error(`\n💥 ${reason}:`, err?.stack || err?.message || err)
+  } catch {}
+  try {
+    if (global.sockBot) {
+      try { global.sockBot.end() } catch {}
+    }
+  } catch {}
+  try {
+    if (global.io) {
+      try { global.io.close() } catch {}
+    }
+  } catch {}
+  try {
+    if (server && typeof server.close === 'function') {
+      server.close(() => {})
+    }
+  } catch {}
+  // Pequena janela para flush de logs antes de sair
+  setTimeout(() => process.exit(1), 250)
+}
+
+process.on('uncaughtException', (err) => fatalTeardown('Erro não capturado', err))
+process.on('unhandledRejection', (err) => fatalTeardown('Rejeição não tratada', err))
 iniciar()

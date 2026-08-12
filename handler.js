@@ -31,7 +31,6 @@ const {
 } = require('./modules/torneio')
 const { verLoja, verLojaTudo, comprar, equiparHabilidade, equiparPet, usarPocao } = require('./modules/loja')
 const { agendarNotificacoes } = require('./modules/agendador')
-const { responderIA, limparHistorico } = require('./modules/ia')
 const { comandoImagem } = require('./modules/imagem')
 const { gerarMusica, gerarVoz, fraseFamosa } = require('./modules/audio')
 const { buscarAnime, buscarPersonagem, topAnimes, animeTemporada } = require('./modules/anilist')
@@ -133,7 +132,6 @@ module.exports = function iniciarHandler(sock) {
     if (!despertou) {
       const respondeu = await processarRespostaDespertar(sock, jid, nome, raw, sender)
       if (!respondeu) return
-      return
     }
 
     // ─── MASMORRA DIÁRIA ────────────────────────────────────
@@ -427,10 +425,10 @@ if (texto === '!hall') return verHallFama(sock, jid)
     if (texto.startsWith('!par ')) return tentarPar(sock, jid, texto.split(' ')[1], texto.split(' ')[2], nome)
 
     if (texto === '!akinator') return iniciarAkinator(sock, jid)
-    if (texto === '!sim' || texto === '!nao') return responderAkinator(sock, jid, texto.replace('!', ''), nome)
+        if (texto === '!sim' || texto === '!nao') return responderAkinator(sock, jid, texto.replace('!', ''), nome)
 
-    if (texto === '!frase') return iniciarFrase(sock, jid)
-    if (await verificarFrase(sock, jid, texto, nome)) return
+        if (texto === '!frasejogo') return iniciarFrase(sock, jid)
+        if (await verificarFrase(sock, jid, texto, nome)) return
 
     // ─── CLÃS ────────────────────────────────────────────────
     if (texto.startsWith('!criar-cla ')) return criarCla(sock, jid, nome, raw.split(' ').slice(1).join(' '))
